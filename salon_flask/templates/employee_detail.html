@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تفاصيل الموظف</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-pink-50 font-sans">
+
+<header class="bg-pink-200 p-4 shadow-md flex justify-between items-center">
+  <h1 class="text-2xl font-bold text-white">تفاصيل الموظف: {{ employee.name }}</h1>
+  <a href="{{ url_for('main.employees') }}" class="bg-white text-pink-600 px-4 py-2 rounded-lg font-semibold hover:bg-pink-100">رجوع إلى الموظفين</a>
+  <a href="{{ url_for('main.admin_dashboard') }}" class="bg-white text-pink-600 px-4 py-2 rounded-lg font-semibold hover:bg-pink-100">لوحة المدير</a>
+  
+</header>
+
+<main class="p-6 space-y-6">
+
+  <div class="bg-white p-6 rounded-xl shadow-md">
+    <h2 class="text-xl font-semibold text-pink-600 mb-4">معلومات الموظف</h2>
+    <div class="grid md:grid-cols-3 gap-4 text-gray-700">
+      <div><span class="font-semibold">الاسم:</span> {{ employee.name }}</div>
+      <div><span class="font-semibold">التخصص:</span> {{ employee.specialty or '—' }}</div>
+      <div><span class="font-semibold">نسبة العمولة:</span> {{ employee.commission_rate or 0 }}%</div>
+      <div><span class="font-semibold">تاريخ بدء العمل:</span> {{ start_work_date.strftime('%Y-%m-%d') if start_work_date else 'غير معروف' }}</div>
+    </div>
+  </div>
+
+  <div class="bg-white p-6 rounded-xl shadow-md">
+    <form class="flex items-center gap-3" method="get">
+      <label class="text-gray-700">الشهر:</label>
+      <input type="month" name="month" value="{{ month_str }}" class="border rounded-lg p-2">
+      <button class="bg-pink-500 text-white px-4 py-2 rounded-lg hover:bg-pink-600">تصفية</button>
+    </form>
+  </div>
+
+  <div class="grid md:grid-cols-3 gap-6">
+    <div class="bg-white p-6 rounded-xl shadow-md text-center">
+      <h3 class="text-lg font-semibold text-pink-600">دخل هذا الشهر</h3>
+      <p class="text-3xl font-bold text-green-600 mt-2">{{ income_total }} ر.ع</p>
+      <p class="text-sm text-gray-500 mt-1">من حجوزات مكتملة بين {{ period_start.strftime('%Y-%m-%d') }}</p>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-md text-center">
+      <h3 class="text-lg font-semibold text-pink-600">عدد الحجوزات المكتملة</h3>
+      <p class="text-3xl font-bold text-blue-600 mt-2">{{ bookings_count }}</p>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-md text-center">
+      <h3 class="text-lg font-semibold text-pink-600">إجمالي المنتجات المصروفة</h3>
+      <p class="text-3xl font-bold text-purple-600 mt-2">{{ total_products_used }}</p>
+    </div>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-6">
+    <div class="bg-white p-6 rounded-xl shadow-md">
+      <h3 class="text-lg font-semibold text-pink-600 mb-4">تفصيل الدخل حسب الخدمة</h3>
+      <table class="w-full table-auto text-gray-700">
+        <thead>
+          <tr class="bg-pink-100">
+            <th class="px-4 py-2">الخدمة</th>
+            <th class="px-4 py-2">عدد المرات</th>
+            <th class="px-4 py-2">الإجمالي (ر.ع)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in services_breakdown %}
+          <tr class="border-b">
+            <td class="px-4 py-2">{{ row[0] }}</td>
+            <td class="px-4 py-2">{{ row[1] }}</td>
+            <td class="px-4 py-2">{{ row[2] }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" class="text-center py-4 text-gray-500">لا توجد بيانات</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-md">
+      <h3 class="text-lg font-semibold text-pink-600 mb-4">استهلاك المنتجات</h3>
+      <table class="w-full table-auto text-gray-700">
+        <thead>
+          <tr class="bg-pink-100">
+            <th class="px-4 py-2">المنتج</th>
+            <th class="px-4 py-2">الكمية</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in usage_rows %}
+          <tr class="border-b">
+            <td class="px-4 py-2">{{ row[0] }}</td>
+            <td class="px-4 py-2">{{ row[1] }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="2" class="text-center py-4 text-gray-500">لا توجد حركات صرف</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+</body>
+</html>
+

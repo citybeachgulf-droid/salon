@@ -4,7 +4,7 @@ from models import Employee, User
 from flask import session, redirect, url_for, flash
 from models import Employee, User, Service, Booking, Supplier
 from sqlalchemy import func
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from models import Service, Employee, Customer, Sale, SaleItem,Inventory  
 from models import Expense, Salary
 from models import Inventory, InventoryTransaction, Employee
@@ -312,6 +312,129 @@ def employees():
     employees = Employee.query.all()
     return render_template('employees.html', employees=employees)
 
+
+
+@main_bp.route('/employees/<int:employee_id>')
+def employee_detail(employee_id):
+    # صفحة تفاصيل الموظف للمدير فقط
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    emp = Employee.query.get_or_404(employee_id)
+
+    # قراءة شهر التصفية من الاستعلام (YYYY-MM)
+    month_str = request.args.get('month')
+    today = datetime.today().date()
+    if month_str:
+        try:
+            year, month = map(int, month_str.split('-'))
+            period_start = date(year, month, 1)
+        except Exception:
+            period_start = date(today.year, today.month, 1)
+            month_str = period_start.strftime('%Y-%m')
+    else:
+        period_start = date(today.year, today.month, 1)
+        month_str = period_start.strftime('%Y-%m')
+
+    # حساب نهاية الفترة (أول يوم من الشهر التالي)
+    if period_start.month == 12:
+        period_end = date(period_start.year + 1, 1, 1)
+    else:
+        period_end = date(period_start.year, period_start.month + 1, 1)
+
+    # تاريخ بدء العمل (تخمين): أقدم تاريخ نشاط مسجل (حجز/بيع/صرف مخزون)
+    earliest_booking = db.session.query(func.min(Booking.date)).filter(Booking.employee_id == emp.id).scalar()
+    earliest_sale_dt = db.session.query(func.min(Sale.date)).filter(Sale.employee_id == emp.id).scalar()
+    earliest_txn_dt = db.session.query(func.min(InventoryTransaction.date)).filter(InventoryTransaction.employee_id == emp.id).scalar()
+
+    candidates = []
+    if earliest_booking:
+        candidates.append(earliest_booking if isinstance(earliest_booking, date) else earliest_booking)
+    if earliest_sale_dt:
+        candidates.append(earliest_sale_dt.date() if hasattr(earliest_sale_dt, 'date') else earliest_sale_dt)
+    if earliest_txn_dt:
+        candidates.append(earliest_txn_dt.date() if hasattr(earliest_txn_dt, 'date') else earliest_txn_dt)
+
+    start_work_date = None
+    if candidates:
+        start_work_date = min(candidates)
+
+    # إجمالي الدخل لهذا الشهر (من الحجوزات المكتملة)
+    income_total = (
+        db.session.query(func.coalesce(func.sum(Service.price), 0))
+        .select_from(Booking)
+        .join(Service, Service.id == Booking.service_id)
+        .filter(
+            Booking.employee_id == emp.id,
+            Booking.date >= period_start,
+            Booking.date < period_end,
+            Booking.status == 'completed'
+        )
+        .scalar()
+    )
+
+    # عدد الحجوزات المكتملة هذا الشهر
+    bookings_count = (
+        db.session.query(func.count(Booking.id))
+        .filter(
+            Booking.employee_id == emp.id,
+            Booking.date >= period_start,
+            Booking.date < period_end,
+            Booking.status == 'completed'
+        )
+        .scalar()
+    )
+
+    # تفصيل الدخل لكل خدمة خلال الشهر
+    services_breakdown = (
+        db.session.query(
+            Service.name,
+            func.count(Booking.id).label('count'),
+            func.coalesce(func.sum(Service.price), 0).label('total')
+        )
+        .select_from(Booking)
+        .join(Service, Service.id == Booking.service_id)
+        .filter(
+            Booking.employee_id == emp.id,
+            Booking.date >= period_start,
+            Booking.date < period_end,
+            Booking.status == 'completed'
+        )
+        .group_by(Service.id)
+        .all()
+    )
+
+    # استهلاك المنتجات خلال الشهر
+    usage_rows = (
+        db.session.query(
+            Inventory.product,
+            func.coalesce(func.sum(InventoryTransaction.quantity), 0).label('qty')
+        )
+        .select_from(InventoryTransaction)
+        .join(Inventory, Inventory.id == InventoryTransaction.inventory_id)
+        .filter(
+            InventoryTransaction.employee_id == emp.id,
+            InventoryTransaction.date >= period_start,
+            InventoryTransaction.date < period_end
+        )
+        .group_by(Inventory.product)
+        .all()
+    )
+
+    total_products_used = sum(row.qty for row in usage_rows) if usage_rows else 0
+
+    return render_template(
+        'employee_detail.html',
+        employee=emp,
+        month_str=month_str,
+        period_start=period_start,
+        income_total=income_total,
+        bookings_count=bookings_count,
+        services_breakdown=services_breakdown,
+        usage_rows=usage_rows,
+        total_products_used=total_products_used,
+        start_work_date=start_work_date
+    )
 
 @main_bp.route('/delete_employee/<int:employee_id>', methods=['POST'])
 def delete_employee(employee_id):

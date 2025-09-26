@@ -47,7 +47,9 @@
             <tbody>
                 {% for emp in employees %}
                 <tr class="border-b">
-                    <td class="px-4 py-2">{{ emp.name }}</td>
+                    <td class="px-4 py-2">
+                        <a class="text-pink-600 hover:underline" href="{{ url_for('main.employee_detail', employee_id=emp.id) }}">{{ emp.name }}</a>
+                    </td>
                     <td class="px-4 py-2">{{ emp.role }}</td>
                     <td class="px-4 py-2 space-x-2">
                         <!-- زر حذف -->
