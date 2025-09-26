@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>فاتورة #{{ sale.id }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 font-sans">
+  <div class="max-w-2xl mx-auto bg-white shadow rounded-lg p-6 mt-8">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-pink-600">فاتورة</h1>
+      <span class="text-gray-500">رقم: {{ sale.id }}</span>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 text-sm mb-6">
+      <div>
+        <p class="text-gray-500">تاريخ الإصدار</p>
+        <p class="font-semibold">{{ sale.date.strftime('%Y-%m-%d %H:%M') }}</p>
+      </div>
+      <div class="text-right">
+        <p class="text-gray-500">الموظف</p>
+        <p class="font-semibold">{{ sale.employee.name }}</p>
+      </div>
+      <div>
+        <p class="text-gray-500">العميل</p>
+        <p class="font-semibold">{{ sale.customer.name if sale.customer else 'عميل نقدي' }}</p>
+      </div>
+      <div class="text-right">
+        <p class="text-gray-500">هاتف العميل</p>
+        <p class="font-semibold">{{ sale.customer.phone if sale.customer else '-' }}</p>
+      </div>
+    </div>
+
+    <table class="w-full text-right text-sm mb-6">
+      <thead class="bg-pink-100 text-pink-700">
+        <tr>
+          <th class="py-2 px-3">الخدمة</th>
+          <th class="py-2 px-3">الكمية</th>
+          <th class="py-2 px-3">السعر</th>
+          <th class="py-2 px-3">الإجمالي</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in sale.items %}
+        <tr class="border-b">
+          <td class="py-2 px-3">{{ item.service.name }}</td>
+          <td class="py-2 px-3">{{ item.quantity }}</td>
+          <td class="py-2 px-3">{{ '%.3f'|format(item.price) }} ر.ع</td>
+          <td class="py-2 px-3">{{ '%.3f'|format(item.price * item.quantity) }} ر.ع</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="flex justify-between items-center">
+      <div></div>
+      <div class="text-right">
+        <p class="text-gray-600">الإجمالي</p>
+        <p class="text-xl font-bold text-pink-700">{{ '%.3f'|format(sale.total_amount) }} ر.ع</p>
+      </div>
+    </div>
+
+    <div class="mt-6 flex gap-3">
+      <a href="{{ url_for('main.pos_dashboard') }}" class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">رجوع للـ POS</a>
+      <button onclick="window.print()" class="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600">طباعة</button>
+    </div>
+  </div>
+</body>
+</html>
+
