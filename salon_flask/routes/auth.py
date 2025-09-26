@@ -18,11 +18,14 @@ def login():
             session['role'] = user.role
 
             # توجيه حسب الصلاحية
-            if user.role == 'admin':
+            # توحيد الأسماء: اعتبر 'account_manager' نفس صلاحية 'accountant'
+            role = 'accountant' if user.role in ['account_manager', 'accountant'] else user.role
+            session['role'] = role
+
+            if role == 'admin':
                 return redirect(url_for('main.admin_dashboard'))
-            elif user.role == 'accountant':
-                return redirect(url_for('main.pos_dashboard'))
-            elif user.role == 'accountant':
+            elif role == 'accountant':
+                # صفحة المحاسبة هي الصفحة الرئيسية للمحاسب
                 return redirect(url_for('main.accounting_dashboard'))
             else:
                 return redirect(url_for('main.employee_bookings'))
