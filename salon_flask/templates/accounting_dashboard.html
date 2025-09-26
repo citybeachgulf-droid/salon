@@ -18,11 +18,11 @@
   <div class="grid md:grid-cols-2 gap-6">
     <div class="bg-white p-6 rounded-xl shadow-md text-center">
         <h2 class="text-lg font-semibold text-pink-600 mb-2">إجمالي المصاريف</h2>
-        <p class="text-2xl font-bold text-red-600">{{ total_expenses }} ر.س</p>
+        <p class="text-2xl font-bold text-red-600">{{ total_expenses }} ر.ع</p>
     </div>
     <div class="bg-white p-6 rounded-xl shadow-md text-center">
         <h2 class="text-lg font-semibold text-pink-600 mb-2">إجمالي الرواتب</h2>
-        <p class="text-2xl font-bold text-blue-600">{{ total_salaries }} ر.س</p>
+        <p class="text-2xl font-bold text-blue-600">{{ total_salaries }} ر.ع</p>
     </div>
   </div>
 
@@ -31,7 +31,7 @@
       <h2 class="text-xl font-semibold text-pink-600 mb-4">إضافة مصروف</h2>
       <form action="{{ url_for('main.add_expense') }}" method="POST" class="space-y-4">
           <input type="text" name="description" placeholder="وصف المصروف" class="w-full p-2 border rounded-lg" required>
-          <input type="number" name="amount" placeholder="المبلغ (ر.س)" class="w-full p-2 border rounded-lg" required>
+          <input type="number" name="amount" placeholder="المبلغ (ر.ع)" class="w-full p-2 border rounded-lg" required>
           <button type="submit" class="w-full bg-pink-400 text-white py-2 rounded-lg hover:bg-pink-500 transition">إضافة مصروف</button>
       </form>
   </div>
@@ -45,7 +45,7 @@
               <option value="{{ emp.id }}">{{ emp.name }}</option>
               {% endfor %}
           </select>
-          <input type="number" name="amount" placeholder="المبلغ (ر.س)" class="w-full p-2 border rounded-lg" required>
+          <input type="number" name="amount" placeholder="المبلغ (ر.ع)" class="w-full p-2 border rounded-lg" required>
           <button type="submit" class="w-full bg-pink-400 text-white py-2 rounded-lg hover:bg-pink-500 transition">إضافة راتب</button>
       </form>
   </div>
@@ -66,7 +66,7 @@
               {% for record in records %}
               <tr class="border-b">
                   <td class="px-4 py-2">{{ record.description if record.type=='expense' else record.employee.name }}</td>
-                  <td class="px-4 py-2">{{ record.amount }}</td>
+                  <td class="px-4 py-2">{{ record.amount }} ر.ع</td>
                   <td class="px-4 py-2">{{ 'مصروف' if record.type=='expense' else 'راتب' }}</td>
                   <td class="px-4 py-2">{{ record.date_added.strftime('%Y-%m-%d') }}</td>
               </tr>

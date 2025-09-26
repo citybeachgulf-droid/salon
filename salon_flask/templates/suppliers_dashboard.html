@@ -45,10 +45,10 @@
             <td class="py-2 px-4">{{ supplier.name }}</td>
             <td class="py-2 px-4">{{ supplier.phone }}</td>
             <td class="py-2 px-4">{{ supplier.notes }}</td>
-            <td class="py-2 px-4">{{ supplier.amount_paid }}</td>
+            <td class="py-2 px-4">{{ supplier.amount_paid }} ر.ع</td>
             <td class="py-2 px-4">
                 <form method="POST" action="{{ url_for('main.pay_supplier', supplier_id=supplier.id) }}">
-    <input type="number" name="amount" step="0.01" placeholder="المبلغ" required>
+    <input type="number" name="amount" step="0.01" placeholder="المبلغ (ر.ع)" required>
     <button type="submit" class="bg-pink-400 text-white px-3 py-1 rounded">سداد</button>
 </form>
 
