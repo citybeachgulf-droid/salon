@@ -57,12 +57,33 @@ def admin_dashboard():
     # جلب كل الموردين
     suppliers = Supplier.query.all()
 
+    # المجاميع المالية العامة
+    income_sum = db.session.query(func.coalesce(func.sum(Revenue.amount), 0)).scalar()
+    expenses_sum = db.session.query(func.coalesce(func.sum(Expense.amount), 0)).scalar()
+    salaries_sum = db.session.query(func.coalesce(func.sum(Salary.amount), 0)).scalar()
+
+    # توحيد النوع إلى Decimal لتفادي أخطاء الجمع بين float و Decimal
+    income_sum = income_sum if isinstance(income_sum, Decimal) else Decimal(str(income_sum or 0))
+    expenses_sum = expenses_sum if isinstance(expenses_sum, Decimal) else Decimal(str(expenses_sum or 0))
+    salaries_sum = salaries_sum if isinstance(salaries_sum, Decimal) else Decimal(str(salaries_sum or 0))
+
+    total_income = income_sum
+    total_expenses = expenses_sum + salaries_sum
+    total_profit = total_income - total_expenses
+
+    # عناصر المخزون منخفضة الكمية
+    low_stock_items = Inventory.query.filter(Inventory.quantity <= Inventory.reorder_level).all()
+
     return render_template(
         'admin_dashboard.html',
         employees=employees,
         services=services,
         suppliers=suppliers,
-        username=session.get('username')
+        username=session.get('username'),
+        total_income=total_income,
+        total_expenses=total_expenses,
+        total_profit=total_profit,
+        low_stock_items=low_stock_items
     )
 
 
