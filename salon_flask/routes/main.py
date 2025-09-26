@@ -25,7 +25,8 @@ from models import Employee, Booking, Service
 def home():
     # واجهة العملاء هي الصفحة الرئيسية
     services = Service.query.all()
-    return render_template('customer_home.html', services=services)
+    employees = Employee.query.all()
+    return render_template('customer_home.html', services=services, employees=employees)
 
 
 
@@ -572,9 +573,7 @@ def issue_inventory():
 
     if quantity > item.quantity:
         flash("الكمية المطلوبة أكبر من المخزون الحالي!", "danger")
-        return redirect(url_for('main.inventory_dashboard')
-
-)
+        return redirect(url_for('main.inventory_dashboard'))
 
     # تسجيل العملية
     transaction = InventoryTransaction(
@@ -589,9 +588,7 @@ def issue_inventory():
     db.session.commit()
 
     flash(f"تم صرف {quantity} من {item.product} للموظف.", "success")
-    return redirect(url_for('main.inventory_dashboard')
-
-)
+    return redirect(url_for('main.inventory_dashboard'))
 
 
 
