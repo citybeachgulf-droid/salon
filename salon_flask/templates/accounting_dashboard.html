@@ -15,7 +15,7 @@
 <main class="p-6 space-y-8">
 
   <!-- ملخص المصاريف -->
-  <div class="grid md:grid-cols-2 gap-6">
+  <div class="grid md:grid-cols-3 gap-6">
     <div class="bg-white p-6 rounded-xl shadow-md text-center">
         <h2 class="text-lg font-semibold text-pink-600 mb-2">إجمالي المصاريف</h2>
         <p class="text-2xl font-bold text-red-600">{{ total_expenses }} ر.ع</p>
@@ -23,6 +23,10 @@
     <div class="bg-white p-6 rounded-xl shadow-md text-center">
         <h2 class="text-lg font-semibold text-pink-600 mb-2">إجمالي الرواتب</h2>
         <p class="text-2xl font-bold text-blue-600">{{ total_salaries }} ر.ع</p>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-md text-center">
+        <h2 class="text-lg font-semibold text-pink-600 mb-2">إجمالي الإيرادات</h2>
+        <p class="text-2xl font-bold text-green-600">{{ total_revenue }} ر.ع</p>
     </div>
   </div>
 
@@ -40,12 +44,13 @@
   <div class="bg-white p-6 rounded-xl shadow-md">
       <h2 class="text-xl font-semibold text-pink-600 mb-4">إضافة راتب موظف</h2>
       <form action="{{ url_for('main.add_salary') }}" method="POST" class="space-y-4">
-          <select name="employee_id" class="w-full p-2 border rounded-lg" required>
+          <select name="employee_name" class="w-full p-2 border rounded-lg" required>
               {% for emp in employees %}
-              <option value="{{ emp.id }}">{{ emp.name }}</option>
+              <option value="{{ emp.name }}">{{ emp.name }}</option>
               {% endfor %}
           </select>
-          <input type="number" name="amount" placeholder="المبلغ (ر.ع)" class="w-full p-2 border rounded-lg" required>
+          <input type="text" name="month" placeholder="الشهر (مثال: سبتمبر 2025)" class="w-full p-2 border rounded-lg" required>
+          <input type="number" step="0.001" name="amount" placeholder="المبلغ (ر.ع)" class="w-full p-2 border rounded-lg" required>
           <button type="submit" class="w-full bg-pink-400 text-white py-2 rounded-lg hover:bg-pink-500 transition">إضافة راتب</button>
       </form>
   </div>
@@ -57,18 +62,40 @@
           <thead>
               <tr class="bg-pink-100">
                   <th class="px-4 py-2">الوصف / الموظف</th>
-                  <th class="px-4 py-2">المبلغ (ر.س)</th>
+                  <th class="px-4 py-2">المبلغ (ر.ع)</th>
                   <th class="px-4 py-2">النوع</th>
-                  <th class="px-4 py-2">تاريخ الإضافة</th>
+                  <th class="px-4 py-2">التاريخ</th>
               </tr>
           </thead>
           <tbody>
               {% for record in records %}
               <tr class="border-b">
-                  <td class="px-4 py-2">{{ record.description if record.type=='expense' else record.employee.name }}</td>
-                  <td class="px-4 py-2">{{ record.amount }} ر.ع</td>
+                  <td class="px-4 py-2">{{ record.description if record.type=='expense' else record.employee_name }}</td>
+                  <td class="px-4 py-2">{{ '%.3f'|format(record.amount) }} ر.ع</td>
                   <td class="px-4 py-2">{{ 'مصروف' if record.type=='expense' else 'راتب' }}</td>
-                  <td class="px-4 py-2">{{ record.date_added.strftime('%Y-%m-%d') }}</td>
+                  <td class="px-4 py-2">{{ record.date.strftime('%Y-%m-%d') }}</td>
+              </tr>
+              {% endfor %}
+          </tbody>
+      </table>
+  </div>
+
+  <div class="bg-white p-6 rounded-xl shadow-md">
+      <h2 class="text-xl font-semibold text-pink-600 mb-4">الإيرادات المسجلة</h2>
+      <table class="w-full table-auto text-gray-700">
+          <thead>
+              <tr class="bg-green-100">
+                  <th class="px-4 py-2">المصدر</th>
+                  <th class="px-4 py-2">المبلغ (ر.ع)</th>
+                  <th class="px-4 py-2">التاريخ</th>
+              </tr>
+          </thead>
+          <tbody>
+              {% for r in revenues %}
+              <tr class="border-b">
+                  <td class="px-4 py-2">{{ r.source }}</td>
+                  <td class="px-4 py-2">{{ '%.3f'|format(r.amount) }} ر.ع</td>
+                  <td class="px-4 py-2">{{ r.date.strftime('%Y-%m-%d') }}</td>
               </tr>
               {% endfor %}
           </tbody>
