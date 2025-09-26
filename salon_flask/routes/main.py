@@ -315,6 +315,16 @@ def employees():
 
 
 
+@main_bp.route('/customers')
+def customers():
+    # صفحة العملاء للمدير فقط
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    customers = Customer.query.all()
+    return render_template('customers.html', customers=customers)
+
+
 @main_bp.route('/employees/<int:employee_id>')
 def employee_detail(employee_id):
     # صفحة تفاصيل الموظف للمدير فقط
