@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الموظفين - لوحة المدير</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-pink-50 font-sans">
+
+<header class="bg-pink-200 p-4 shadow-md flex justify-between items-center">
+    <h1 class="text-2xl font-bold text-white">الموظفين</h1>
+    <a href="{{ url_for('main.admin_dashboard') }}" class="bg-white text-pink-600 px-4 py-2 rounded-lg font-semibold hover:bg-pink-100">
+        لوحة المدير
+    </a>
+</header>
+
+<main class="p-6">
+    <!-- إضافة موظف -->
+    <div class="bg-white p-6 rounded-xl shadow-md mb-6">
+        <h2 class="text-xl font-semibold text-pink-600 mb-4">إضافة موظف جديد</h2>
+        <form action="{{ url_for('main.add_employee') }}" method="POST" class="space-y-4">
+            <input type="text" name="name" placeholder="اسم الموظف" class="w-full p-2 border rounded-lg" required>
+            <input type="password" name="password" placeholder="كلمة المرور" class="w-full p-2 border rounded-lg" required>
+           <select name="role" class="w-full p-2 border rounded-lg" required>
+    <option value="staff">موظف</option>
+    <option value="accountant">محاسب</option>
+    <option value="admin">مدير</option>
+    <option value="account_manager">مدير حسابات</option> <!-- جديد -->
+</select>
+
+            <button type="submit" class="w-full bg-pink-400 text-white py-2 rounded-lg hover:bg-pink-500">إضافة موظف</button>
+        </form>
+    </div>
+
+    <!-- جدول الموظفين -->
+    <div class="bg-white p-6 rounded-xl shadow-md">
+        <h2 class="text-xl font-semibold text-pink-600 mb-4">قائمة الموظفين</h2>
+        <table class="w-full table-auto text-gray-700">
+            <thead>
+                <tr class="bg-pink-100">
+                    <th class="px-4 py-2">الاسم</th>
+                    <th class="px-4 py-2">الدور</th>
+                    <th class="px-4 py-2">الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in employees %}
+                <tr class="border-b">
+                    <td class="px-4 py-2">{{ emp.name }}</td>
+                    <td class="px-4 py-2">{{ emp.role }}</td>
+                    <td class="px-4 py-2 space-x-2">
+                        <!-- زر حذف -->
+                        <form action="{{ url_for('main.delete_employee', employee_id=emp.id) }}" method="POST" class="inline">
+                            <button type="submit" class="bg-red-400 text-white px-3 py-1 rounded-lg hover:bg-red-500">حذف</button>
+                        </form>
+                        <!-- زر تعديل (اختياري، يمكن ربطه بصفحة تعديل) -->
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

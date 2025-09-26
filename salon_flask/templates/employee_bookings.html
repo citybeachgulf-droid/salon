@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حجوزاتي</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-pink-50 font-sans">
+
+<header class="bg-pink-200 p-4 shadow-md">
+    <h1 class="text-3xl font-bold text-white">حجوزاتي</h1>
+</header>
+
+<main class="p-6 space-y-6">
+
+    <table class="min-w-full bg-white shadow-md rounded-xl overflow-hidden">
+        <thead class="bg-pink-200 text-white">
+            <tr>
+                <th class="py-2 px-4">العميل</th>
+                <th class="py-2 px-4">الخدمة</th>
+                <th class="py-2 px-4">التاريخ</th>
+                <th class="py-2 px-4">الوقت</th>
+                <th class="py-2 px-4">الحالة</th>
+                <th class="py-2 px-4">تحديث</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in bookings %}
+            <tr class="border-b">
+                <td class="py-2 px-4">{{ booking.customer.name }}</td>
+                <td class="py-2 px-4">{{ booking.service.name }}</td>
+                <td class="py-2 px-4">{{ booking.date.strftime('%Y-%m-%d') }}</td>
+                <td class="py-2 px-4">{{ booking.time.strftime('%H:%M') }}</td>
+                <td class="py-2 px-4">{{ booking.status }}</td>
+                <td class="py-2 px-4">
+                    <form method="POST" action="{{ url_for('main.update_booking_status', booking_id=booking.id) }}">
+                        <select name="status" class="border rounded p-1">
+                            <option value="booked" {% if booking.status == 'booked' %}selected{% endif %}>مجدول</option>
+                            <option value="completed" {% if booking.status == 'completed' %}selected{% endif %}>تم التنفيذ</option>
+                            <option value="canceled" {% if booking.status == 'canceled' %}selected{% endif %}>ملغاة</option>
+                        </select>
+                        <button type="submit" class="bg-pink-400 text-white px-2 py-1 rounded hover:bg-pink-500 ml-2">حفظ</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="text-center py-4 text-gray-500">لا توجد حجوزات</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</main>
+
+</body>
+</html>

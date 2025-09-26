@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إدارة الحجوزات</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-pink-50 font-sans">
+
+<header class="bg-pink-200 p-4 shadow-md">
+    <h1 class="text-3xl font-bold text-white text-center">إدارة الحجوزات</h1>
+</header>
+
+<main class="p-6">
+
+  <!-- زر إضافة حجز -->
+  <div class="mb-4 text-right">
+    <button 
+      class="bg-pink-400 text-white py-2 px-4 rounded-lg hover:bg-pink-500 transition"
+      onclick="openBookingModal()">
+      إضافة حجز جديد
+    </button>
+  </div>
+
+  <!-- جدول الحجوزات -->
+  <div class="overflow-x-auto bg-white rounded-lg shadow p-4">
+    <table class="min-w-full text-right">
+      <thead class="bg-pink-100 text-pink-700">
+        <tr>
+          <th class="py-2 px-4">العميل</th>
+          <th class="py-2 px-4">رقم العميل</th>
+          <th class="py-2 px-4">الخدمة</th>
+          <th class="py-2 px-4">الموظف</th>
+          <th class="py-2 px-4">التاريخ</th>
+          <th class="py-2 px-4">الوقت</th>
+          <th class="py-2 px-4">الحالة</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for booking in bookings %}
+        <tr class="border-b hover:bg-pink-50">
+          <td class="py-2 px-4">{{ booking.customer.name }}</td>
+          <td class="py-2 px-4">{{ booking.customer.phone }}</td>
+          <td class="py-2 px-4">{{ booking.service.name }}</td>
+          <td class="py-2 px-4">{{ booking.employee.name }}</td>
+          <td class="py-2 px-4">{{ booking.date.strftime('%Y-%m-%d') }}</td>
+          <td class="py-2 px-4">{{ booking.time.strftime('%H:%M') }}</td>
+          <td class="py-2 px-4">{{ booking.status }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="py-4 text-center text-gray-500">لا توجد حجوزات بعد</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<!-- مودال إضافة الحجز -->
+<div id="bookingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+  <div class="bg-white rounded-xl p-6 w-11/12 md:w-1/3 shadow-lg relative">
+    <button onclick="closeBookingModal()" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+    <h2 class="text-xl font-bold text-pink-600 mb-4">إضافة حجز جديد</h2>
+    <form action="{{ url_for('main.pos_bookings') }}" method="POST" class="space-y-4">
+      <div>
+        <label class="block mb-1 font-semibold">اسم العميل</label>
+        <input type="text" name="customer_name" class="w-full p-2 border rounded-lg" required>
+      </div>
+      <div>
+        <label class="block mb-1 font-semibold">رقم العميل</label>
+        <input type="text" name="customer_phone" class="w-full p-2 border rounded-lg" required>
+      </div>
+      <div>
+        <label class="block mb-1 font-semibold">الخدمة</label>
+        <select name="service_id" class="w-full p-2 border rounded-lg" required>
+          {% for service in services %}
+          <option value="{{ service.id }}">{{ service.name }} - {{ service.price }} ر.س</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block mb-1 font-semibold">الموظف المستلم</label>
+        <select name="employee_id" class="w-full p-2 border rounded-lg" required>
+          {% for emp in employees %}
+          <option value="{{ emp.id }}">{{ emp.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block mb-1 font-semibold">تاريخ الحجز</label>
+        <input type="date" name="booking_date" class="w-full p-2 border rounded-lg" required>
+      </div>
+      <div>
+        <label class="block mb-1 font-semibold">وقت الحجز</label>
+        <input type="time" name="booking_time" class="w-full p-2 border rounded-lg" required>
+      </div>
+      <button type="submit" class="w-full bg-pink-400 text-white py-2 rounded-lg hover:bg-pink-500 transition">تأكيد الحجز</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function openBookingModal() {
+    document.getElementById('bookingModal').classList.remove('hidden');
+    document.getElementById('bookingModal').classList.add('flex');
+}
+
+function closeBookingModal() {
+    document.getElementById('bookingModal').classList.add('hidden');
+    document.getElementById('bookingModal').classList.remove('flex');
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>المخزن</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-pink-50 font-sans">
+
+<header class="bg-pink-400 p-4 shadow-md">
+    <h1 class="text-3xl font-bold text-white text-center">المخزن</h1>
+</header>
+
+<main class="p-6 space-y-8 max-w-5xl mx-auto">
+
+  <!-- Form: إضافة منتج جديد -->
+  <div class="bg-white p-6 rounded-2xl shadow-lg">
+    <h2 class="text-2xl font-bold text-pink-600 mb-6 text-center">إضافة منتج جديد</h2>
+    <form action="{{ url_for('main.inventory_dashboard') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+      
+      <!-- اسم المنتج -->
+      <div>
+        <label class="block mb-1 font-semibold">اسم المنتج</label>
+        <input type="text" name="product" placeholder="أدخل اسم المنتج"
+               class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400" required>
+      </div>
+      
+      <!-- الكمية -->
+      <div>
+        <label class="block mb-1 font-semibold">الكمية</label>
+        <input type="number" name="quantity" placeholder="أدخل الكمية"
+               class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400" min="1" required>
+      </div>
+      
+      <!-- حد إعادة الطلب -->
+      <div>
+        <label class="block mb-1 font-semibold">حد إعادة الطلب</label>
+        <input type="number" name="reorder_level" placeholder="أدخل الحد"
+               class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400" min="1" required>
+      </div>
+      
+      <!-- صورة المنتج -->
+      <div>
+        <label class="block mb-1 font-semibold">صورة المنتج (اختياري)</label>
+        <input type="file" name="image" accept="image/*"
+               class="w-full p-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400">
+      </div>
+      
+      <div class="flex justify-end mt-4">
+        <button type="submit" class="bg-pink-500 text-white px-6 py-3 rounded-xl hover:bg-pink-600 transition w-full">
+          إضافة المنتج
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- عرض المنتجات الحالية -->
+  <div class="bg-white p-6 rounded-2xl shadow-lg">
+    <h2 class="text-2xl font-bold text-pink-600 mb-6 text-center">المنتجات الحالية</h2>
+    <div class="grid sm:grid-cols-1 md:grid-cols-3 gap-6">
+        {% for item in items %}
+        <div class="bg-pink-50 p-4 rounded-xl shadow hover:shadow-lg transition relative">
+            {% if item.image_url %}
+            <img src="{{ item.image_url }}" alt="{{ item.product }}" class="w-full h-32 object-cover rounded-lg mb-2">
+            {% endif %}
+            <h2 class="font-bold text-pink-700 text-lg">{{ item.product }}</h2>
+            <p>الكمية المتوفرة: {{ item.quantity }}</p>
+            <p>حد إعادة الطلب: {{ item.reorder_level }}</p>
+            {% if item.quantity <= item.reorder_level %}
+            <span class="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded">كمية منخفضة!</span>
+            {% endif %}
+            <button 
+                class="mt-3 bg-pink-400 text-white py-1 px-3 rounded-lg hover:bg-pink-500 transition"
+                onclick="openTransactionModal({{ item.id }}, '{{ item.product|e }}', {{ item.quantity }})">
+                صرف للموظف
+            </button>
+        </div>
+        {% else %}
+        <p class="text-center text-gray-500 col-span-full">لا يوجد منتجات في المخزن</p>
+        {% endfor %}
+    </div>
+  </div>
+
+</main>
+
+<!-- Modal صرف المنتج -->
+<div id="transactionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-xl w-96 relative">
+        <h2 class="text-xl font-semibold text-pink-600 mb-4">صرف منتج للموظف</h2>
+        <form id="transactionForm" method="POST" action="{{ url_for('main.assign_inventory') }}">
+            <input type="hidden" name="inventory_id" id="modal_inventory_id">
+            <p>المنتج: <span id="modal_product_name"></span></p>
+            <p>المتوفر: <span id="modal_product_quantity"></span></p>
+
+            <label class="block mt-2">اختر الموظف</label>
+            <select name="employee_id" class="w-full p-2 border rounded-lg" required>
+                {% for emp in employees %}
+                <option value="{{ emp.id }}">{{ emp.name }}</option>
+                {% endfor %}
+            </select>
+
+            <label class="block mt-2">الكمية</label>
+            <input type="number" name="quantity" id="modal_quantity" class="w-full p-2 border rounded-lg" min="1" required>
+
+            <div class="flex justify-end mt-4">
+                <button type="button" onclick="closeTransactionModal()" class="bg-gray-300 px-3 py-1 rounded mr-2">إلغاء</button>
+                <button type="submit" class="bg-pink-400 text-white px-4 py-1 rounded hover:bg-pink-500">صرف</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openTransactionModal(id, product, quantity) {
+    const modal = document.getElementById('transactionModal');
+    modal.classList.remove('hidden');
+
+    document.getElementById('modal_inventory_id').value = id;
+    document.getElementById('modal_product_name').innerText = product;
+    document.getElementById('modal_product_quantity').innerText = quantity;
+
+    const qtyInput = document.getElementById('modal_quantity');
+    qtyInput.value = 1;
+    qtyInput.max = quantity;
+}
+
+function closeTransactionModal() {
+    document.getElementById('transactionModal').classList.add('hidden');
+}
+</script>
+
+</body>
+</html>

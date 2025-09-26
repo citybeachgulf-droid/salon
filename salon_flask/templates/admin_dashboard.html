@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة المدير</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-pink-50 font-sans">
+
+<header class="bg-pink-300 p-4 shadow-md">
+    <h1 class="text-3xl font-bold text-white">لوحة المدير</h1>
+</header>
+
+<main class="p-6 space-y-8">
+
+  <!-- الملخص المالي -->
+  <div class="grid md:grid-cols-3 gap-6">
+    <div class="bg-white p-6 rounded-xl shadow-md text-center">
+        <h2 class="text-lg font-semibold text-pink-600 mb-2">إجمالي الدخل</h2>
+        <p class="text-2xl font-bold text-green-600">{{ total_income }} ر.س</p>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-md text-center">
+        <h2 class="text-lg font-semibold text-pink-600 mb-2">المصاريف</h2>
+        <p class="text-2xl font-bold text-red-600">{{ total_expenses }} ر.س</p>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-md text-center">
+        <h2 class="text-lg font-semibold text-pink-600 mb-2">الربح</h2>
+        <p class="text-2xl font-bold text-blue-600">{{ total_profit }} ر.س</p>
+    </div>
+  </div>
+
+  <!-- تنبيهات المنتجات القريبة من النفاد -->
+  <div class="bg-white p-6 rounded-xl shadow-md">
+      <h2 class="text-xl font-semibold text-pink-600 mb-4">تنبيهات المخزن</h2>
+      {% if low_stock_items %}
+      <ul class="space-y-2">
+          {% for item in low_stock_items %}
+          <li class="bg-pink-50 border-l-4 border-pink-500 p-2 rounded shadow">
+              المنتج: <span class="font-bold">{{ item.product }}</span> - الكمية المتبقية: <span class="text-red-600">{{ item.quantity }}</span>
+          </li>
+          {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-gray-500">جميع المنتجات بكميات كافية.</p>
+      {% endif %}
+  </div>
+
+  <!-- أزرار الوصول السريع -->
+  <div class="flex flex-wrap gap-4 mt-4">
+    <a href="{{ url_for('main.employees') }}" class="bg-pink-500 text-white py-2 px-4 rounded-lg shadow hover:bg-pink-600 transition">الموظفين</a>
+    <a href="{{ url_for('main.inventory_dashboard') }}" class="bg-pink-400 text-white py-2 px-4 rounded-lg shadow hover:bg-pink-500 transition">المخزن</a>
+    <a href="{{ url_for('main.suppliers_dashboard') }}" class="bg-pink-600 text-white py-2 px-4 rounded-lg shadow hover:bg-pink-700 transition">الموردين</a>
+    <a href="{{ url_for('main.admin_services') }}" class="bg-pink-300 text-white py-2 px-4 rounded-lg shadow hover:bg-pink-400 transition">الخدمات</a>
+    <a href="{{ url_for('main.pos_dashboard') }}" class="bg-pink-200 text-white py-2 px-4 rounded-lg shadow hover:bg-pink-300 transition">POS</a>
+  </div>
+
+</main>
+
+</body>
+</html>

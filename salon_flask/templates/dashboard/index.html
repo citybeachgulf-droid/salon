@@ -1,0 +1,36 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8">
+    <h2>لوحة تحكم الصالون</h2>
+    <div class="row">
+      <div class="col">
+        <div class="card p-3">
+          <h5>إجمالي الإيرادات</h5>
+          <p class="fs-4">{{ total_revenue }}</p>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card p-3">
+          <h5>إجمالي المصروفات</h5>
+          <p class="fs-4">{{ total_expenses }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="mt-3">
+      <h5>حجوزات اليوم: {{ today_bookings }}</h5>
+      <h5>منتجات قريبة من النفاد: {{ low_stock }}</h5>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <h5>أفضل الموظفات</h5>
+    <ul class="list-group">
+    {% for e in top_employees %}
+      <li class="list-group-item">{{ e.name }} - {{ e.specialty }}</li>
+    {% else %}
+      <li class="list-group-item">لا توجد بيانات</li>
+    {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

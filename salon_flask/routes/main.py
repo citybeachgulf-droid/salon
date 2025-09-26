@@ -1,0 +1,632 @@
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from extensions import db
+from models import Employee, User
+from flask import session, redirect, url_for, flash
+from models import Employee, User, Service, Booking, Supplier
+from sqlalchemy import func
+from datetime import datetime
+from models import Service, Employee, Customer, Sale, SaleItem,Inventory  
+from models import Expense, Salary
+from models import Inventory, InventoryTransaction, Employee
+from decimal import Decimal
+from werkzeug.utils import secure_filename
+import os
+
+
+pos_bp = Blueprint('pos', __name__, template_folder='../templates')
+
+main_bp = Blueprint('main', __name__, template_folder='../templates')
+UPLOAD_FOLDER = 'static/uploads/services'
+
+from sqlalchemy import func
+from models import Employee, Booking, Service
+
+@main_bp.route('/')
+def home():
+    # واجهة العملاء هي الصفحة الرئيسية
+    services = Service.query.all()
+    return render_template('customer_home.html', services=services)
+
+
+
+@main_bp.route('/admin')
+def admin_dashboard():
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    # جلب كل الموظفين مع عدد الحجوزات والمجموع المكتسب
+    employees = (
+        db.session.query(
+            Employee.id,
+            Employee.name,
+            Employee.specialty,
+            func.count(Booking.id).label('bookings_count'),
+            func.coalesce(func.sum(Service.price), 0).label('total_earned')
+        )
+        .outerjoin(Booking, Booking.employee_id == Employee.id)
+        .outerjoin(Service, Service.id == Booking.service_id)
+        .group_by(Employee.id)
+        .all()
+    )
+
+    # جلب كل الخدمات
+    services = Service.query.all()
+
+    # جلب كل الموردين
+    suppliers = Supplier.query.all()
+
+    return render_template(
+        'admin_dashboard.html',
+        employees=employees,
+        services=services,
+        suppliers=suppliers,
+        username=session.get('username')
+    )
+
+
+
+
+
+@main_bp.route('/add_supplier', methods=['POST'])
+def add_supplier():
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    name = request.form['name']
+    phone = request.form.get('phone')
+    notes = request.form.get('notes')
+    amount_paid = request.form.get('amount_paid') or 0
+
+    supplier = Supplier(name=name, phone=phone, notes=notes, amount_paid=amount_paid)
+    db.session.add(supplier)
+    db.session.commit()
+    flash(f'Supplier {name} added successfully!', 'success')
+    return redirect(url_for('main.admin_dashboard'))
+
+
+
+
+@main_bp.route('/add_employee', methods=['POST'])
+def add_employee():
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+    
+    name = request.form['name']
+    role = request.form['role']  # هنا يمكن أن تكون account_manager
+    password = request.form['password']
+
+    # إنشاء مستخدم أولاً
+    user = User(username=name.replace(" ","").lower(), role=role)
+    user.set_password(password)
+    db.session.add(user)
+
+    # إضافة الموظف
+    employee = Employee(name=name, specialty=request.form.get('specialty'))
+    db.session.add(employee)
+
+    db.session.commit()
+    flash(f'تمت إضافة الموظف {name} بنجاح مع الصلاحية {role}!', 'success')
+    return redirect(url_for('main.admin_dashboard'))
+
+
+@main_bp.route('/admin/services')
+def admin_services():
+    employees = Employee.query.all()
+    services = Service.query.all()
+    return render_template('admin_services.html', employees=employees, services=services)
+
+@main_bp.route('/add_service', methods=['GET', 'POST'])
+def add_service():
+    if request.method == 'POST':
+        service_name = request.form['service_name']
+        service_price = float(request.form['service_price'])  # تأكد أنها float
+        
+        image_url = None
+        if 'service_image' in request.files:
+            file = request.files['service_image']
+            if file.filename != '':
+                filename = secure_filename(file.filename)
+                os.makedirs('static/uploads/services', exist_ok=True)  # تأكد من وجود المجلد
+                file.save(os.path.join('static/uploads/services', filename))
+                image_url = f'uploads/services/{filename}'
+        
+        # إضافة الخدمة لقاعدة البيانات
+        new_service = Service(name=service_name, price=service_price, image_url=image_url)
+        db.session.add(new_service)
+        db.session.commit()
+        
+        flash(f'تمت إضافة الخدمة {service_name} بنجاح!', 'success')
+        return redirect(url_for('main.admin_services'))  # إعادة التوجيه إلى صفحة عرض الخدمات
+    
+    return render_template('add_service.html')
+
+
+@main_bp.route('/admin/services')
+def services_list():
+    services = Service.query.all()
+    employees = Employee.query.all()
+    return render_template('admin_services.html', services=services, employees=employees)
+
+
+
+@main_bp.route('/pos')
+def pos_dashboard():
+    # السماح فقط للمحاسب أو المدير
+    if session.get('role') not in ['admin', 'accountant']:
+        return "Access Denied", 403
+
+    # جلب جميع الموظفين (الذين يمكن استلام العملاء)
+    employees = Employee.query.all()  # هنا بدل User.query
+    customers = Customer.query.all()
+    services = Service.query.all()
+    
+    return render_template(
+        'pos_dashboard.html',
+        employees=employees,
+        customers=customers,
+        services=services
+    )
+
+
+
+
+
+
+
+
+
+
+
+@main_bp.route('/suppliers', methods=['GET', 'POST'])
+def suppliers_dashboard():
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    if request.method == 'POST':
+        name = request.form['name']
+        phone = request.form.get('phone')
+        notes = request.form.get('notes')
+        paid_amount = request.form.get('paid_amount', 0)
+
+        supplier = Supplier(
+            name=name,
+            phone=phone,
+             notes=notes,
+            amount_paid=paid_amount  # يمكن تعديل حسب حاجتك
+        )
+        db.session.add(supplier)
+        db.session.commit()
+        flash(f'تم إضافة المورد {name} بنجاح!', 'success')
+        return redirect(url_for('main.suppliers_dashboard'))
+
+    suppliers = Supplier.query.all()
+    return render_template('suppliers_dashboard.html', suppliers=suppliers, username=session.get('username'))
+
+
+
+@main_bp.route('/pay_supplier/<int:supplier_id>', methods=['POST'])
+def pay_supplier(supplier_id):
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    supplier = Supplier.query.get_or_404(supplier_id)
+    amount = Decimal(request.form.get('amount', '0'))  # تحويل إلى Decimal
+    supplier.amount_paid += amount
+    db.session.commit()
+    flash(f'تم تسديد {amount} للمورد {supplier.name} بنجاح!', 'success')
+    return redirect(url_for('main.suppliers_dashboard'))
+
+
+
+
+
+
+# عرض المخزن وإضافة منتجات جديدة
+@main_bp.route('/inventory', methods=['GET', 'POST'])
+def inventory_dashboard():
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    if request.method == 'POST':
+        # إضافة منتج جديد
+        product = request.form['product']
+        quantity = int(request.form['quantity'])
+        reorder_level = int(request.form['reorder_level'])
+
+        image_url = None
+        if 'image' in request.files:
+            file = request.files['image']
+            if file.filename != '':
+                filename = secure_filename(file.filename)
+                file.save(os.path.join('static/uploads/inventory', filename))
+                image_url = url_for('static', filename=f'uploads/inventory/{filename}')
+
+        new_item = Inventory(product=product, quantity=quantity, reorder_level=reorder_level, image_url=image_url)
+        db.session.add(new_item)
+        db.session.commit()
+        flash('تم إضافة المنتج بنجاح!', 'success')
+        return redirect(url_for('main.inventory_dashboard'))
+
+    # عرض المنتجات الحالية
+    items = Inventory.query.all()
+    employees = Employee.query.all()
+    return render_template('inventory.html', items=items, employees=employees)
+
+# صرف المنتج للموظف
+@main_bp.route('/inventory/assign', methods=['POST'])
+def assign_inventory():
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    inventory_id = request.form['inventory_id']
+    employee_id = request.form['employee_id']
+    quantity = int(request.form['quantity'])
+
+    item = Inventory.query.get_or_404(inventory_id)
+    if quantity > item.quantity:
+        flash('الكمية المطلوبة أكبر من المخزون الحالي!', 'danger')
+        return redirect(url_for('main.inventory_dashboard'))
+
+    # تحديث المخزون
+    item.quantity -= quantity
+    transaction = InventoryTransaction(
+        inventory_id=inventory_id,
+        employee_id=employee_id,
+        quantity=quantity
+    )
+    db.session.add(transaction)
+    db.session.commit()
+    flash(f'تم صرف {quantity} من {item.product} للموظف', 'success')
+    return redirect(url_for('main.inventory_dashboard'))
+
+@main_bp.route('/add_inventory', methods=['POST'])
+def add_inventory():
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    product = request.form['product']
+    quantity = int(request.form['quantity'])
+    reorder_level = int(request.form['reorder_level'])
+
+    image_url = None
+    if 'image' in request.files:
+        file = request.files['image']
+        if file.filename != '':
+            filename = secure_filename(file.filename)
+            file.save(os.path.join('static/uploads/inventory', filename))
+            image_url = url_for('static', filename=f'uploads/inventory/{filename}')
+
+    new_item = Inventory(product=product, quantity=quantity, reorder_level=reorder_level, image_url=image_url)
+    db.session.add(new_item)
+    db.session.commit()
+    flash('تم إضافة المنتج بنجاح!', 'success')
+    return redirect(url_for('main.inventory_dashboard'))
+
+
+
+@main_bp.route('/employees')
+def employees():
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    employees = Employee.query.all()
+    return render_template('employees.html', employees=employees)
+
+
+@main_bp.route('/delete_employee/<int:employee_id>', methods=['POST'])
+def delete_employee(employee_id):
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+    emp = Employee.query.get_or_404(employee_id)
+    # حذف المستخدم المرتبط إذا موجود
+    user = User.query.filter_by(username=emp.name.replace(" ","").lower()).first()
+    if user:
+        db.session.delete(user)
+    db.session.delete(emp)
+    db.session.commit()
+    flash(f'تم حذف الموظف {emp.name}', 'success')
+    return redirect(url_for('main.employees'))
+
+
+
+
+
+
+@main_bp.route('/accounting_dashboard')
+def accounting_dashboard():
+    if session.get('role') not in ['admin', 'account_manager']:
+        return "Access Denied", 403
+    return render_template('accounting_dashboard.html')
+
+
+    total_expenses = db.session.query(func.coalesce(func.sum(Expense.amount),0)).scalar()
+    total_salaries = db.session.query(func.coalesce(func.sum(Salary.amount),0)).scalar()
+    employees = Employee.query.all()
+
+    # دمج المصاريف والرواتب لعرضها في جدول واحد
+    expense_records = Expense.query.all()
+    salary_records = Salary.query.all()
+
+    records = []
+    for e in expense_records:
+        e.type = 'expense'
+        records.append(e)
+    for s in salary_records:
+        s.type = 'salary'
+        records.append(s)
+
+    # ترتيب حسب التاريخ
+    records.sort(key=lambda x: x.date_added, reverse=True)
+
+    return render_template(
+        'accounting_dashboard.html',
+        total_expenses=total_expenses,
+        total_salaries=total_salaries,
+        employees=employees,
+        records=records
+    )
+
+@main_bp.route('/add_expense', methods=['POST'])
+def add_expense():
+    if session.get('role') != 'accountant':
+        return "Access Denied", 403
+
+    description = request.form['description']
+    amount = float(request.form['amount'])
+    expense = Expense(description=description, amount=amount)
+    db.session.add(expense)
+    db.session.commit()
+    flash('تمت إضافة المصروف بنجاح', 'success')
+    return redirect(url_for('main.accounting_dashboard'))
+
+@main_bp.route('/add_salary', methods=['POST'])
+def add_salary():
+    if session.get('role') != 'accountant':
+        return "Access Denied", 403
+
+    employee_id = request.form['employee_id']
+    amount = float(request.form['amount'])
+    salary = Salary(employee_id=employee_id, amount=amount)
+    db.session.add(salary)
+    db.session.commit()
+    flash('تمت إضافة الراتب بنجاح', 'success')
+    return redirect(url_for('main.accounting_dashboard'))
+
+
+
+
+
+@main_bp.route('/create_booking', methods=['POST'])
+def create_booking():
+    # السماح فقط للمحاسب أو المدير
+    if session.get('role') not in ['accountant', 'admin']:
+        return "Access Denied", 403
+
+    service_id = request.form['service_id']
+    employee_id = request.form['employee_id']
+    customer_name = request.form['customer_name']
+    customer_phone = request.form['customer_phone']
+
+    # إنشاء العميل أولاً إذا لم يكن موجود
+    customer = Customer.query.filter_by(phone=customer_phone).first()
+    if not customer:
+        customer = Customer(name=customer_name, phone=customer_phone)
+        db.session.add(customer)
+        db.session.commit()
+
+    # التأكد من أن الموظف موجود
+    employee = Employee.query.get(employee_id)
+    if not employee:
+        flash("الموظف المحدد غير موجود!", "danger")
+        return redirect(url_for('main.pos_dashboard'))
+
+    # إنشاء الحجز
+    booking = Booking(
+        customer_id=customer.id,
+        service_id=service_id,
+        employee_id=employee.id,
+        date=datetime.today(),
+        time=datetime.now().time(),
+        status='booked'
+    )
+    db.session.add(booking)
+    db.session.commit()
+
+    flash("تم تسجيل الخدمة بنجاح للعميل والموظف المحدد", "success")
+    return redirect(url_for('main.pos_dashboard'))
+
+
+@main_bp.route('/inventory/issue', methods=['POST'])
+def issue_inventory():
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    inventory_id = request.form['inventory_id']
+    employee_id = request.form['employee_id']
+    quantity = int(request.form['quantity'])
+
+    item = Inventory.query.get_or_404(inventory_id)
+
+    if quantity > item.quantity:
+        flash("الكمية المطلوبة أكبر من المخزون الحالي!", "danger")
+        return redirect(url_for('main.inventory_dashboard')
+
+)
+
+    # تسجيل العملية
+    transaction = InventoryTransaction(
+        inventory_id=inventory_id,
+        employee_id=employee_id,
+        quantity=quantity
+    )
+    db.session.add(transaction)
+
+    # تحديث المخزون
+    item.quantity -= quantity
+    db.session.commit()
+
+    flash(f"تم صرف {quantity} من {item.product} للموظف.", "success")
+    return redirect(url_for('main.inventory_dashboard')
+
+)
+
+
+
+
+@main_bp.route('/employee/bookings')
+def employee_bookings():
+    if session.get('role') != 'staff':
+        return "Access Denied", 403
+
+    # جلب الموظف الحالي
+    employee = Employee.query.filter_by(name=session.get('username')).first()
+    if not employee:
+        return "Employee not found", 404
+
+    # جلب جميع الحجوزات الخاصة بهذا الموظف
+    bookings = Booking.query.filter_by(employee_id=employee.id).all()
+
+    return render_template('employee_bookings.html', bookings=bookings)
+
+
+
+
+@main_bp.route('/update_booking_status/<int:booking_id>', methods=['POST'])
+def update_booking_status(booking_id):
+    if session.get('role') != 'staff':
+        return "Access Denied", 403
+
+    booking = Booking.query.get_or_404(booking_id)
+    new_status = request.form.get('status')
+    booking.status = new_status
+    db.session.commit()
+    flash(f'تم تحديث حالة الحجز إلى {new_status}', 'success')
+    return redirect(url_for('main.employee_bookings'))
+
+
+
+@main_bp.route('/pos/bookings', methods=['GET', 'POST'])
+def pos_bookings():
+    """
+    صفحة إدارة الحجوزات لمنفذ المبيعات أو المدير.
+    GET: عرض قائمة الحجوزات ونماذج الإدخال.
+    POST: تسجيل حجز جديد.
+    """
+    # السماح فقط لمنفذ المبيعات أو المدير
+    if session.get('role') not in ['accountant', 'admin']:
+        return "Access Denied", 403
+
+    # جلب جميع الموظفين والخدمات والعملاء والحجوزات
+    employees = Employee.query.all()
+    services = Service.query.all()
+    customers = Customer.query.all()
+    bookings = Booking.query.order_by(Booking.date.desc(), Booking.time.desc()).all()
+
+    if request.method == 'POST':
+        # جمع بيانات الحجز من الفورم
+        customer_name = request.form.get('customer_name')
+        customer_phone = request.form.get('customer_phone')
+        service_id = request.form.get('service_id')
+        employee_id = request.form.get('employee_id')
+        booking_date = request.form.get('booking_date')
+        booking_time = request.form.get('booking_time')
+
+        # تحقق إذا العميل موجود مسبقًا
+        customer = Customer.query.filter_by(phone=customer_phone).first()
+        if not customer:
+            customer = Customer(name=customer_name, phone=customer_phone)
+            db.session.add(customer)
+            db.session.commit()
+
+        # التأكد من أن الموظف موجود
+        employee = Employee.query.get(employee_id)
+        if not employee:
+            flash("الموظف المحدد غير موجود!", "danger")
+            return redirect(url_for('main.pos_bookings'))
+
+        # إنشاء الحجز
+        booking = Booking(
+            customer_id=customer.id,
+            service_id=service_id,
+            employee_id=employee.id,
+            date=datetime.strptime(booking_date, '%Y-%m-%d'),
+            time=datetime.strptime(booking_time, '%H:%M').time(),
+            status='booked'
+        )
+        db.session.add(booking)
+        db.session.commit()
+
+        flash("تم تسجيل الحجز بنجاح!", "success")
+        return redirect(url_for('main.pos_bookings'))
+
+    # تمرير جميع البيانات للقالب
+    return render_template(
+        'pos_bookings.html',
+        employees=employees,
+        services=services,
+        customers=customers,
+        bookings=bookings
+    )
+
+
+
+
+@main_bp.route('/customer/bookings', methods=['GET', 'POST'])
+def customer_booking_page():
+    services = Service.query.all()
+    employees = Employee.query.all()
+
+    if request.method == 'POST':
+        customer_name = request.form.get('customer_name')
+        customer_phone = request.form.get('customer_phone')
+        service_id = request.form.get('service_id')
+        employee_id = request.form.get('employee_id')
+        booking_date = request.form.get('booking_date')
+        booking_time = request.form.get('booking_time')
+
+        # التأكد من وجود العميل
+        customer = Customer.query.filter_by(phone=customer_phone).first()
+        if not customer:
+            customer = Customer(name=customer_name, phone=customer_phone)
+            db.session.add(customer)
+            db.session.commit()
+
+        # التأكد من وجود الموظف
+        employee = Employee.query.get(employee_id)
+        if not employee:
+            flash("الموظف المختار غير موجود!", "danger")
+            return redirect(url_for('main.customer_booking_page'))
+
+        # إنشاء الحجز
+        booking = Booking(
+            customer_id=customer.id,
+            service_id=service_id,
+            employee_id=employee.id,
+            date=datetime.strptime(booking_date, '%Y-%m-%d'),
+            time=datetime.strptime(booking_time, '%H:%M').time(),
+            status='booked'
+        )
+        db.session.add(booking)
+        db.session.commit()
+        flash("تم تسجيل الحجز بنجاح!", "success")
+        return redirect(url_for('main.customer_booking_page'))
+
+    return render_template('customer_booking.html', services=services, employees=employees)
+
+
+
+@main_bp.route('/api/available_times')
+def available_times():
+    service_id = request.args.get('service_id')
+    date_str = request.args.get('date')
+    date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+
+    # جميع الأوقات الممكنة (مثال: 9 ص - 5 م كل نصف ساعة)
+    all_times = [f"{h:02d}:{m:02d}" for h in range(9, 18) for m in (0,30)]
+
+    # حذف الأوقات المحجوزة مسبقًا
+    booked = Booking.query.filter_by(service_id=service_id, date=date_obj).all()
+    booked_times = [b.time.strftime("%H:%M") for b in booked]
+    available = [t for t in all_times if t not in booked_times]
+
+    return {'times': available}
