@@ -760,3 +760,81 @@ def available_times():
     available = [t for t in all_times if t not in booked_times]
 
     return {'times': available}
+
+
+# -----------------------------
+# POS: Create Sale and Invoice
+# -----------------------------
+@main_bp.route('/pos/sales/create', methods=['POST'])
+def create_sale():
+    # السماح فقط للمحاسب أو المدير
+    if session.get('role') not in ['accountant', 'admin']:
+        return "Access Denied", 403
+
+    service_id = request.form.get('service_id')
+    employee_id = request.form.get('employee_id')
+    customer_name = request.form.get('customer_name')
+    customer_phone = request.form.get('customer_phone')
+    quantity_str = request.form.get('quantity', '1')
+
+    try:
+        quantity = int(quantity_str)
+        if quantity <= 0:
+            quantity = 1
+    except Exception:
+        quantity = 1
+
+    # التأكد من وجود الخدمة والموظف
+    service = Service.query.get(service_id)
+    if not service:
+        flash("الخدمة غير موجودة!", "danger")
+        return redirect(url_for('main.pos_dashboard'))
+
+    employee = Employee.query.get(employee_id)
+    if not employee:
+        flash("الموظف المحدد غير موجود!", "danger")
+        return redirect(url_for('main.pos_dashboard'))
+
+    # إنشاء العميل إذا لزم
+    customer = None
+    if customer_phone:
+        customer = Customer.query.filter_by(phone=customer_phone).first()
+    if not customer and customer_name and customer_phone:
+        customer = Customer(name=customer_name, phone=customer_phone)
+        db.session.add(customer)
+        db.session.commit()
+
+    # حساب المجموع وإنشاء البيع
+    unit_price = Decimal(str(service.price))
+    total_amount = unit_price * quantity
+
+    sale = Sale(
+        employee_id=employee.id,
+        customer_id=customer.id if customer else None,
+        total_amount=total_amount,
+        date=datetime.utcnow()
+    )
+    db.session.add(sale)
+    db.session.flush()  # للحصول على sale.id قبل الالتزام
+
+    sale_item = SaleItem(
+        sale_id=sale.id,
+        service_id=service.id,
+        quantity=quantity,
+        price=unit_price
+    )
+    db.session.add(sale_item)
+    db.session.commit()
+
+    # توجيه إلى صفحة الفاتورة
+    return redirect(url_for('main.view_invoice', sale_id=sale.id))
+
+
+@main_bp.route('/pos/invoice/<int:sale_id>')
+def view_invoice(sale_id):
+    # السماح فقط للمحاسب أو المدير
+    if session.get('role') not in ['accountant', 'admin']:
+        return "Access Denied", 403
+
+    sale = Sale.query.get_or_404(sale_id)
+    return render_template('invoice.html', sale=sale)
