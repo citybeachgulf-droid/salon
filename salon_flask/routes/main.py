@@ -7,6 +7,7 @@ from sqlalchemy import func
 from datetime import datetime, date, timedelta
 from models import Service, Employee, Customer, Sale, SaleItem,Inventory  
 from models import Expense, Salary
+from models import Revenue
 from models import Inventory, InventoryTransaction, Employee
 from decimal import Decimal
 from werkzeug.utils import secure_filename
@@ -824,6 +825,13 @@ def create_sale():
         price=unit_price
     )
     db.session.add(sale_item)
+    # سجل الدخل مباشرة عند إنشاء عملية بيع
+    revenue = Revenue(
+        source=f"POS - {service.name}",
+        amount=total_amount,
+        date=datetime.utcnow().date()
+    )
+    db.session.add(revenue)
     db.session.commit()
 
     # توجيه إلى صفحة الفاتورة
