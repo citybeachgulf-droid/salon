@@ -22,7 +22,7 @@ def login():
                 return redirect(url_for('main.admin_dashboard'))
             elif user.role == 'accountant':
                 return redirect(url_for('main.pos_dashboard'))
-            elif user.role == 'account_manager':   # <-- تأكد الاسم هنا
+            elif user.role == 'accountant':
                 return redirect(url_for('main.accounting_dashboard'))
             else:
                 return redirect(url_for('main.employee_bookings'))

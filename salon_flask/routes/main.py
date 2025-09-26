@@ -469,18 +469,18 @@ def delete_employee(employee_id):
 
 @main_bp.route('/accounting_dashboard')
 def accounting_dashboard():
-    if session.get('role') not in ['admin', 'account_manager']:
+    if session.get('role') not in ['admin', 'accountant']:
         return "Access Denied", 403
-    return render_template('accounting_dashboard.html')
+    # المجاميع
+    total_expenses = db.session.query(func.coalesce(func.sum(Expense.amount), 0)).scalar()
+    total_salaries = db.session.query(func.coalesce(func.sum(Salary.amount), 0)).scalar()
+    total_revenue = db.session.query(func.coalesce(func.sum(Revenue.amount), 0)).scalar()
 
-
-    total_expenses = db.session.query(func.coalesce(func.sum(Expense.amount),0)).scalar()
-    total_salaries = db.session.query(func.coalesce(func.sum(Salary.amount),0)).scalar()
     employees = Employee.query.all()
 
     # دمج المصاريف والرواتب لعرضها في جدول واحد
-    expense_records = Expense.query.all()
-    salary_records = Salary.query.all()
+    expense_records = Expense.query.order_by(Expense.date.desc()).all()
+    salary_records = Salary.query.order_by(Salary.date.desc()).all()
 
     records = []
     for e in expense_records:
@@ -490,15 +490,20 @@ def accounting_dashboard():
         s.type = 'salary'
         records.append(s)
 
-    # ترتيب حسب التاريخ
-    records.sort(key=lambda x: x.date_added, reverse=True)
+    # ترتيب حسب التاريخ الموحد بالحقل "date"
+    records.sort(key=lambda x: x.date, reverse=True)
+
+    # الإيرادات للعرض
+    revenues = Revenue.query.order_by(Revenue.date.desc()).all()
 
     return render_template(
         'accounting_dashboard.html',
         total_expenses=total_expenses,
         total_salaries=total_salaries,
+        total_revenue=total_revenue,
         employees=employees,
-        records=records
+        records=records,
+        revenues=revenues
     )
 
 @main_bp.route('/add_expense', methods=['POST'])
@@ -519,9 +524,10 @@ def add_salary():
     if session.get('role') != 'accountant':
         return "Access Denied", 403
 
-    employee_id = request.form['employee_id']
+    employee_name = request.form['employee_name']
+    month = request.form['month']
     amount = float(request.form['amount'])
-    salary = Salary(employee_id=employee_id, amount=amount)
+    salary = Salary(employee_name=employee_name, amount=amount, month=month)
     db.session.add(salary)
     db.session.commit()
     flash('تمت إضافة الراتب بنجاح', 'success')
@@ -629,7 +635,21 @@ def update_booking_status(booking_id):
 
     booking = Booking.query.get_or_404(booking_id)
     new_status = request.form.get('status')
+    old_status = booking.status
     booking.status = new_status
+
+    # تسجيل دخل عند اكتمال الحجز لأول مرة
+    if new_status == 'completed' and old_status != 'completed':
+        service = Service.query.get(booking.service_id)
+        if service:
+            rev_date = booking.date if isinstance(booking.date, date) else datetime.utcnow().date()
+            revenue = Revenue(
+                source=f"Booking - {service.name}",
+                amount=service.price,
+                date=rev_date
+            )
+            db.session.add(revenue)
+
     db.session.commit()
     flash(f'تم تحديث حالة الحجز إلى {new_status}', 'success')
     return redirect(url_for('main.employee_bookings'))
