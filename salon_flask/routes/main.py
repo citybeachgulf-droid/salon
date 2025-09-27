@@ -12,6 +12,7 @@ from models import Inventory, InventoryTransaction, Employee
 from decimal import Decimal
 from werkzeug.utils import secure_filename
 import os
+import uuid
 
 
 pos_bp = Blueprint('pos', __name__, template_folder='../templates')
@@ -913,6 +914,58 @@ def gallery_category(category_key):
         category_title=categories_map[category_key],
         images=images
     )
+
+
+# -----------------------------
+# Admin: Upload Gallery Images
+# -----------------------------
+@main_bp.route('/admin/gallery', methods=['GET', 'POST'])
+def admin_gallery():
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    categories = [
+        {"key": "hair", "title": "تساريح"},
+        {"key": "makeup", "title": "ميك أب"},
+        {"key": "nails", "title": "أظافر"}
+    ]
+
+    if request.method == 'POST':
+        category_key = request.form.get('category')
+        allowed_keys = {c["key"] for c in categories}
+        if category_key not in allowed_keys:
+            flash('فئة غير صحيحة.', 'danger')
+            return redirect(url_for('main.admin_gallery'))
+
+        files = request.files.getlist('images')
+        if not files:
+            flash('يرجى اختيار صورة واحدة على الأقل.', 'warning')
+            return redirect(url_for('main.admin_gallery'))
+
+        base_dir = os.path.join('static', 'uploads', 'gallery', category_key)
+        os.makedirs(base_dir, exist_ok=True)
+
+        allowed_ext = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
+        saved_count = 0
+        for f in files:
+            if not f or f.filename == '':
+                continue
+            name = secure_filename(f.filename)
+            _, ext = os.path.splitext(name.lower())
+            if ext not in allowed_ext:
+                continue
+            unique_name = f"{uuid.uuid4().hex}{ext}"
+            f.save(os.path.join(base_dir, unique_name))
+            saved_count += 1
+
+        if saved_count:
+            flash(f'تم رفع {saved_count} صورة بنجاح.', 'success')
+        else:
+            flash('لم يتم رفع أي صور. تأكد من الامتداد المسموح.', 'warning')
+
+        return redirect(url_for('main.admin_gallery'))
+
+    return render_template('admin_gallery.html', categories=categories)
 
 # -----------------------------
 # POS: Create Sale and Invoice
