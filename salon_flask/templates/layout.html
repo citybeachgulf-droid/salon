@@ -11,6 +11,26 @@
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
       <a class="navbar-brand" href="/">Salon</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          {% if session.get('role') in ['admin', 'accountant', 'staff'] %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('main.pos_bookings') }}">الحجوزات</a>
+          </li>
+          {% endif %}
+        </ul>
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+          {% if session.get('username') %}
+          <li class="nav-item"><span class="navbar-text">مرحباً، {{ session.get('username') }}</span></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">خروج</a></li>
+          {% else %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">تسجيل الدخول</a></li>
+          {% endif %}
+        </ul>
+      </div>
     </div>
   </nav>
   <div class="container py-4">
