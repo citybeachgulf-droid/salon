@@ -3,7 +3,10 @@
 <div class="py-2">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="m-0">رفع صور للمعرض</h2>
-    <a class="btn btn-outline-secondary" href="{{ url_for('main.gallery') }}">عرض المعرض</a>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="{{ url_for('main.gallery') }}">عرض المعرض</a>
+      <a class="btn btn-primary" href="{{ url_for('main.admin_services') }}">إضافة الخدمات</a>
+    </div>
   </div>
 
   <form action="{{ url_for('main.admin_gallery') }}" method="post" enctype="multipart/form-data" class="card p-3 shadow-sm">
