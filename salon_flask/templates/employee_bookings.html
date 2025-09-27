@@ -12,7 +12,7 @@
     <div class="flex items-center justify-between">
         <h1 class="text-3xl font-bold text-white">حجوزاتي</h1>
         <nav class="flex items-center gap-2">
-            <a href="{{ url_for('main.pos_bookings') }}" class="bg-pink-500 text-white py-2 px-4 rounded-lg shadow hover:bg-pink-600 transition">الحجوزات</a>
+            <a href="{{ url_for('main.pos_bookings') }}" class="bg-green-400 text-white py-2 px-4 rounded-lg shadow hover:bg-green-500 transition">الحجوزات</a>
             <a href="{{ url_for('main.employee_inventory') }}" class="bg-white text-pink-600 py-2 px-4 rounded-lg shadow hover:bg-pink-100 transition">استهلاك من المخزن</a>
         </nav>
     </div>
@@ -46,7 +46,7 @@
                             <option value="completed" {% if booking.status == 'completed' %}selected{% endif %}>تم التنفيذ</option>
                             <option value="canceled" {% if booking.status == 'canceled' %}selected{% endif %}>ملغاة</option>
                         </select>
-                        <button type="submit" class="bg-pink-400 text-white px-2 py-1 rounded hover:bg-pink-500 ml-2">حفظ</button>
+                        <button type="submit" class="bg-green-400 text-white px-2 py-1 rounded hover:bg-green-500 ml-2">حفظ</button>
                     </form>
                 </td>
             </tr>
