@@ -13,6 +13,7 @@ from decimal import Decimal
 from werkzeug.utils import secure_filename
 import os
 import uuid
+from sqlalchemy import and_
 
 
 pos_bp = Blueprint('pos', __name__, template_folder='../templates')
@@ -493,6 +494,103 @@ def employee_detail(employee_id):
         usage_rows=usage_rows,
         total_products_used=total_products_used,
         start_work_date=start_work_date
+    )
+
+
+@main_bp.route('/reports/monthly')
+def monthly_reports():
+    if session.get('role') not in ['admin', 'accountant']:
+        return "Access Denied", 403
+
+    # Parse month filter (YYYY-MM), default to current month
+    month_str = request.args.get('month')
+    today = datetime.today().date()
+    if month_str:
+        try:
+            year, month = map(int, month_str.split('-'))
+            period_start = date(year, month, 1)
+        except Exception:
+            period_start = date(today.year, today.month, 1)
+            month_str = period_start.strftime('%Y-%m')
+    else:
+        period_start = date(today.year, today.month, 1)
+        month_str = period_start.strftime('%Y-%m')
+
+    # Compute end of month (first day of next month)
+    if period_start.month == 12:
+        period_end = date(period_start.year + 1, 1, 1)
+    else:
+        period_end = date(period_start.year, period_start.month + 1, 1)
+
+    # Finance totals for the period
+    total_revenue = (
+        db.session.query(func.coalesce(func.sum(Revenue.amount), 0))
+        .filter(Revenue.date >= period_start, Revenue.date < period_end)
+        .scalar()
+    )
+    total_expenses = (
+        db.session.query(func.coalesce(func.sum(Expense.amount), 0))
+        .filter(Expense.date >= period_start, Expense.date < period_end)
+        .scalar()
+    )
+    total_salaries = (
+        db.session.query(func.coalesce(func.sum(Salary.amount), 0))
+        .filter(Salary.date >= period_start, Salary.date < period_end)
+        .scalar()
+    )
+
+    # Normalize to Decimal
+    total_revenue = total_revenue if isinstance(total_revenue, Decimal) else Decimal(str(total_revenue or 0))
+    total_expenses = total_expenses if isinstance(total_expenses, Decimal) else Decimal(str(total_expenses or 0))
+    total_salaries = total_salaries if isinstance(total_salaries, Decimal) else Decimal(str(total_salaries or 0))
+
+    total_profit = total_revenue - (total_expenses + total_salaries)
+
+    # Overall bookings count in the period (completed)
+    completed_bookings_count = (
+        db.session.query(func.count(Booking.id))
+        .filter(
+            Booking.date >= period_start,
+            Booking.date < period_end,
+            Booking.status == 'completed'
+        )
+        .scalar()
+    )
+
+    # Employee stats within the month
+    employees_stats = (
+        db.session.query(
+            Employee.id,
+            Employee.name,
+            func.count(Booking.id).label('bookings_count'),
+            func.coalesce(func.sum(Service.price), 0).label('income_total')
+        )
+        .outerjoin(
+            Booking,
+            and_(
+                Booking.employee_id == Employee.id,
+                Booking.date >= period_start,
+                Booking.date < period_end,
+                Booking.status == 'completed'
+            )
+        )
+        .outerjoin(Service, Service.id == Booking.service_id)
+        .group_by(Employee.id)
+        .order_by(func.coalesce(func.sum(Service.price), 0).desc())
+        .all()
+    )
+
+    return render_template(
+        'monthly_reports.html',
+        month_str=month_str,
+        period_start=period_start,
+        period_end=period_end,
+        total_revenue=total_revenue,
+        total_expenses=total_expenses,
+        total_salaries=total_salaries,
+        total_profit=total_profit,
+        completed_bookings_count=completed_bookings_count,
+        employees_stats=employees_stats
     )
 
 @main_bp.route('/delete_employee/<int:employee_id>', methods=['POST'])
