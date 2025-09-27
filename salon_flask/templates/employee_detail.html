@@ -25,7 +25,6 @@
     <div class="grid md:grid-cols-3 gap-4 text-gray-700">
       <div><span class="font-semibold">الاسم:</span> {{ employee.name }}</div>
       <div><span class="font-semibold">التخصص:</span> {{ employee.specialty or '—' }}</div>
-      <div><span class="font-semibold">نسبة العمولة:</span> {{ employee.commission_rate or 0 }}%</div>
       <div><span class="font-semibold">تاريخ بدء العمل:</span> {{ start_work_date.strftime('%Y-%m-%d') if start_work_date else 'غير معروف' }}</div>
     </div>
   </div>
