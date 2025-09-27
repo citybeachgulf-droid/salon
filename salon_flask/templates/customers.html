@@ -19,6 +19,31 @@
 </header>
 
 <main class="p-6">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="mb-4 space-y-2">
+    {% for category, message in messages %}
+    <div class="p-3 rounded {{ 'bg-green-100 text-green-800' if category=='success' else ('bg-red-100 text-red-800' if category=='danger' else 'bg-yellow-100 text-yellow-800') }}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <div class="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+    <div class="p-4 border-b">
+      <h2 class="text-xl font-semibold text-pink-700">إضافة عميل جديد</h2>
+    </div>
+    <form action="{{ url_for('main.add_customer') }}" method="POST" class="p-4 grid md:grid-cols-3 gap-4">
+      <input type="text" name="name" placeholder="الاسم" class="p-2 border rounded-lg" required>
+      <input type="text" name="phone" placeholder="الهاتف" class="p-2 border rounded-lg" required>
+      <input type="email" name="email" placeholder="البريد (اختياري)" class="p-2 border rounded-lg">
+      <div class="md:col-span-3">
+        <button type="submit" class="bg-pink-500 text-white py-2 px-4 rounded-lg hover:bg-pink-600">إضافة</button>
+      </div>
+    </form>
+  </div>
   <div class="bg-white rounded-xl shadow-md overflow-hidden">
     <div class="p-4 border-b">
       <h2 class="text-xl font-semibold text-pink-700">قائمة العملاء</h2>
