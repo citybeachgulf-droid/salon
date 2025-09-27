@@ -1050,3 +1050,135 @@ def view_invoice(sale_id):
 
     sale = Sale.query.get_or_404(sale_id)
     return render_template('invoice.html', sale=sale)
+
+
+# -----------------------------
+# Monthly Reports
+# -----------------------------
+@main_bp.route('/reports/monthly')
+def monthly_reports():
+    # allow admin and accountant
+    if session.get('role') not in ['admin', 'accountant']:
+        return "Access Denied", 403
+
+    # parse month filter (YYYY-MM)
+    month_str = request.args.get('month')
+    today = datetime.today().date()
+    if month_str:
+        try:
+            year, month = map(int, month_str.split('-'))
+            period_start = date(year, month, 1)
+        except Exception:
+            period_start = date(today.year, today.month, 1)
+            month_str = period_start.strftime('%Y-%m')
+    else:
+        period_start = date(today.year, today.month, 1)
+        month_str = period_start.strftime('%Y-%m')
+
+    # period_end = first day of next month
+    if period_start.month == 12:
+        period_end = date(period_start.year + 1, 1, 1)
+    else:
+        period_end = date(period_start.year, period_start.month + 1, 1)
+
+    # Build datetime bounds for DateTime columns
+    from datetime import time as dt_time, datetime as dt_datetime
+    start_dt = dt_datetime.combine(period_start, dt_time.min)
+    end_dt = dt_datetime.combine(period_end, dt_time.min)
+
+    # Finance totals
+    total_revenue = (
+        db.session.query(func.coalesce(func.sum(Revenue.amount), 0))
+        .filter(Revenue.date >= period_start, Revenue.date < period_end)
+        .scalar()
+    )
+    total_expenses = (
+        db.session.query(func.coalesce(func.sum(Expense.amount), 0))
+        .filter(Expense.date >= start_dt, Expense.date < end_dt)
+        .scalar()
+    )
+    total_salaries = (
+        db.session.query(func.coalesce(func.sum(Salary.amount), 0))
+        .filter(Salary.date >= start_dt, Salary.date < end_dt)
+        .scalar()
+    )
+
+    # Ensure Decimal for numeric arithmetic
+    total_revenue = total_revenue if isinstance(total_revenue, Decimal) else Decimal(str(total_revenue or 0))
+    total_expenses = total_expenses if isinstance(total_expenses, Decimal) else Decimal(str(total_expenses or 0))
+    total_salaries = total_salaries if isinstance(total_salaries, Decimal) else Decimal(str(total_salaries or 0))
+    total_profit = total_revenue - (total_expenses + total_salaries)
+
+    # Employee performance: bookings income and POS sales per employee
+    booking_rows = (
+        db.session.query(
+            Booking.employee_id.label('employee_id'),
+            func.count(Booking.id).label('bookings_count'),
+            func.coalesce(func.sum(Service.price), 0).label('booking_income')
+        )
+        .select_from(Booking)
+        .join(Service, Service.id == Booking.service_id)
+        .filter(
+            Booking.date >= period_start,
+            Booking.date < period_end,
+            Booking.status == 'completed'
+        )
+        .group_by(Booking.employee_id)
+        .all()
+    )
+
+    sales_rows = (
+        db.session.query(
+            Sale.employee_id.label('employee_id'),
+            func.coalesce(func.sum(Sale.total_amount), 0).label('pos_sales_total')
+        )
+        .filter(Sale.date >= start_dt, Sale.date < end_dt)
+        .group_by(Sale.employee_id)
+        .all()
+    )
+
+    usage_rows = (
+        db.session.query(
+            InventoryTransaction.employee_id.label('employee_id'),
+            func.coalesce(func.sum(InventoryTransaction.quantity), 0).label('products_used')
+        )
+        .filter(InventoryTransaction.date >= start_dt, InventoryTransaction.date < end_dt)
+        .group_by(InventoryTransaction.employee_id)
+        .all()
+    )
+
+    # Map results for aggregation
+    booking_map = {row.employee_id: {'bookings_count': row.bookings_count, 'booking_income': row.booking_income} for row in booking_rows}
+    sales_map = {row.employee_id: row.pos_sales_total for row in sales_rows}
+    usage_map = {row.employee_id: row.products_used for row in usage_rows}
+
+    employees = Employee.query.all()
+    employee_stats = []
+    for emp in employees:
+        b = booking_map.get(emp.id, {'bookings_count': 0, 'booking_income': Decimal('0')})
+        booking_income = b['booking_income'] if isinstance(b['booking_income'], Decimal) else Decimal(str(b['booking_income'] or 0))
+        pos_sales_total = sales_map.get(emp.id, Decimal('0'))
+        pos_sales_total = pos_sales_total if isinstance(pos_sales_total, Decimal) else Decimal(str(pos_sales_total or 0))
+        total_emp_income = booking_income + pos_sales_total
+        employee_stats.append({
+            'employee': emp,
+            'bookings_count': int(b['bookings_count'] or 0),
+            'booking_income': booking_income,
+            'pos_sales_total': pos_sales_total,
+            'products_used': int(usage_map.get(emp.id, 0) or 0),
+            'total_income': total_emp_income
+        })
+
+    # sort by total income desc
+    employee_stats.sort(key=lambda x: x['total_income'], reverse=True)
+
+    return render_template(
+        'monthly_reports.html',
+        month_str=month_str,
+        period_start=period_start,
+        total_revenue=total_revenue,
+        total_expenses=total_expenses,
+        total_salaries=total_salaries,
+        total_profit=total_profit,
+        employee_stats=employee_stats
+    )

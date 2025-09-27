@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>التقارير الشهرية</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-pink-50 font-sans">
+
+<header class="bg-pink-300 p-4 shadow-md">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-white">التقارير الشهرية</h1>
+    <nav class="flex items-center gap-2">
+      <a href="{{ url_for('main.admin_dashboard') }}" class="bg-white text-pink-700 py-2 px-4 rounded-lg shadow hover:bg-pink-50 transition">العودة للوحة المدير</a>
+    </nav>
+  </div>
+</header>
+
+<main class="p-6 space-y-8">
+  <form method="get" class="bg-white p-4 rounded-xl shadow flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+    <div>
+      <label class="block text-sm text-gray-600 mb-1">الشهر</label>
+      <input type="month" name="month" value="{{ month_str }}" class="border rounded-lg p-2">
+    </div>
+    <button class="bg-pink-600 text-white py-2 px-4 rounded-lg shadow hover:bg-pink-700 transition">تحديث</button>
+  </form>
+
+  <!-- الملخص المالي للشهر -->
+  <div class="grid md:grid-cols-4 gap-6">
+    <div class="bg-white p-6 rounded-xl shadow text-center">
+      <div class="text-sm text-gray-500">الإيرادات</div>
+      <div class="text-2xl font-bold text-green-600">{{ total_revenue }} ر.ع</div>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow text-center">
+      <div class="text-sm text-gray-500">المصاريف</div>
+      <div class="text-2xl font-bold text-red-600">{{ total_expenses }} ر.ع</div>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow text-center">
+      <div class="text-sm text-gray-500">الرواتب</div>
+      <div class="text-2xl font-bold text-red-500">{{ total_salaries }} ر.ع</div>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow text-center">
+      <div class="text-sm text-gray-500">الربح</div>
+      <div class="text-2xl font-bold text-blue-600">{{ total_profit }} ر.ع</div>
+    </div>
+  </div>
+
+  <!-- تفاصيل الموظفين -->
+  <div class="bg-white p-6 rounded-xl shadow">
+    <h2 class="text-xl font-semibold text-pink-700 mb-4">أداء الموظفين في {{ month_str }}</h2>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="bg-pink-100 text-pink-800">
+            <th class="p-3 text-right">الموظف</th>
+            <th class="p-3 text-right">عدد الحجوزات المكتملة</th>
+            <th class="p-3 text-right">دخل الحجوزات</th>
+            <th class="p-3 text-right">مبيعات POS</th>
+            <th class="p-3 text-right">إجمالي دخل الموظف</th>
+            <th class="p-3 text-right">عدد المنتجات المستهلكة</th>
+            <th class="p-3 text-right">تفاصيل</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in employee_stats %}
+          <tr class="border-b hover:bg-pink-50">
+            <td class="p-3">{{ row.employee.name }}</td>
+            <td class="p-3">{{ row.bookings_count }}</td>
+            <td class="p-3">{{ row.booking_income }} ر.ع</td>
+            <td class="p-3">{{ row.pos_sales_total }} ر.ع</td>
+            <td class="p-3 font-semibold">{{ row.total_income }} ر.ع</td>
+            <td class="p-3">{{ row.products_used }}</td>
+            <td class="p-3">
+              <a class="text-pink-700 hover:underline" href="{{ url_for('main.employee_detail', employee_id=row.employee.id, month=month_str) }}">عرض</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+</body>
+</html>
+
