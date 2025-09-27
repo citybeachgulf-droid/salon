@@ -37,6 +37,10 @@
 <header class="bg-pink-400 p-4 shadow-md fixed top-0 w-full z-50 flex justify-between items-center">
   <h1 class="text-3xl font-bold text-white">واحة المرأة</h1>
   <nav>
+    <a href="{{ url_for('main.gallery') }}"
+       class="bg-white text-pink-600 px-4 py-2 rounded-lg hover:bg-pink-100 transition mr-2">
+       المعرض
+    </a>
     <a href="{{ url_for('auth.login') }}" 
        class="bg-white text-pink-500 px-4 py-2 rounded-lg hover:bg-pink-100 transition">
        تسجيل دخول الموظفين
