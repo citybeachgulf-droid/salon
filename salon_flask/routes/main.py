@@ -126,7 +126,7 @@ def add_employee():
     db.session.add(user)
 
     # إضافة الموظف
-    employee = Employee(name=name, specialty=request.form.get('specialty'), user=user)
+    employee = Employee(name=name, specialty=request.form.get('specialty'), role=role, user=user)
     db.session.add(employee)
 
     db.session.commit()
