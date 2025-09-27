@@ -1,0 +1,32 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="py-2">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="m-0">رفع صور للمعرض</h2>
+    <a class="btn btn-outline-secondary" href="{{ url_for('main.gallery') }}">عرض المعرض</a>
+  </div>
+
+  <form action="{{ url_for('main.admin_gallery') }}" method="post" enctype="multipart/form-data" class="card p-3 shadow-sm">
+    <div class="row g-3">
+      <div class="col-12 col-md-4">
+        <label class="form-label">الفئة</label>
+        <select name="category" class="form-select" required>
+          <option value="" selected disabled>اختر الفئة</option>
+          {% for c in categories %}
+          <option value="{{ c.key }}">{{ c.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-8">
+        <label class="form-label">اختر الصور</label>
+        <input type="file" name="images" class="form-control" accept="image/*" multiple required>
+        <div class="form-text">الامتدادات المسموحة: png, jpg, jpeg, gif, webp</div>
+      </div>
+    </div>
+    <div class="mt-3 d-flex justify-content-end">
+      <button type="submit" class="btn btn-primary">رفع الصور</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
