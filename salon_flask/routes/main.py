@@ -348,6 +348,31 @@ def customers():
     return render_template('customers.html', customers=customers)
 
 
+@main_bp.route('/add_customer', methods=['POST'])
+def add_customer():
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    name = request.form.get('name', '').strip()
+    phone = request.form.get('phone', '').strip()
+    email = (request.form.get('email', '') or '').strip() or None
+
+    if not name or not phone:
+        flash('الاسم ورقم الهاتف مطلوبان', 'danger')
+        return redirect(url_for('main.customers'))
+
+    existing = Customer.query.filter_by(phone=phone).first()
+    if existing:
+        flash('هذا العميل موجود بالفعل برقم الهاتف المدخل', 'warning')
+        return redirect(url_for('main.customers'))
+
+    customer = Customer(name=name, phone=phone, email=email)
+    db.session.add(customer)
+    db.session.commit()
+    flash(f'تمت إضافة العميل {name} بنجاح', 'success')
+    return redirect(url_for('main.customers'))
+
+
 @main_bp.route('/employees/<int:employee_id>')
 def employee_detail(employee_id):
     # صفحة تفاصيل الموظف للمدير فقط
