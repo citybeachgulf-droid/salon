@@ -18,7 +18,7 @@
   {% if session.get('role') in ['accountant', 'admin'] %}
   <div class="mb-4 text-right">
     <button 
-      class="bg-pink-400 text-white py-2 px-4 rounded-lg hover:bg-pink-500 transition"
+      class="bg-green-400 text-white py-2 px-4 rounded-lg hover:bg-green-500 transition"
       onclick="openBookingModal()">
       إضافة حجز جديد
     </button>
@@ -99,7 +99,7 @@
         <label class="block mb-1 font-semibold">وقت الحجز</label>
         <input type="time" name="booking_time" class="w-full p-2 border rounded-lg" required>
       </div>
-      <button type="submit" class="w-full bg-pink-400 text-white py-2 rounded-lg hover:bg-pink-500 transition">تأكيد الحجز</button>
+      <button type="submit" class="w-full bg-green-400 text-white py-2 rounded-lg hover:bg-green-500 transition">تأكيد الحجز</button>
     </form>
   </div>
 </div>

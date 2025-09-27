@@ -12,7 +12,7 @@
     <div class="flex items-center justify-between">
         <h1 class="text-3xl font-bold text-white">لوحة مدير الحسابات</h1>
         <nav class="flex items-center gap-2">
-            <a href="{{ url_for('main.pos_bookings') }}" class="bg-pink-600 text-white py-2 px-4 rounded-lg shadow hover:bg-pink-700 transition">الحجوزات</a>
+            <a href="{{ url_for('main.pos_bookings') }}" class="bg-green-500 text-white py-2 px-4 rounded-lg shadow hover:bg-green-600 transition">الحجوزات</a>
         </nav>
     </div>
 </header>
@@ -41,7 +41,7 @@
       <form action="{{ url_for('main.add_expense') }}" method="POST" class="space-y-4">
           <input type="text" name="description" placeholder="وصف المصروف" class="w-full p-2 border rounded-lg" required>
           <input type="number" name="amount" placeholder="المبلغ (ر.ع)" class="w-full p-2 border rounded-lg" required>
-          <button type="submit" class="w-full bg-pink-400 text-white py-2 rounded-lg hover:bg-pink-500 transition">إضافة مصروف</button>
+          <button type="submit" class="w-full bg-green-400 text-white py-2 rounded-lg hover:bg-green-500 transition">إضافة مصروف</button>
       </form>
   </div>
 
@@ -56,7 +56,7 @@
           </select>
           <input type="text" name="month" placeholder="الشهر (مثال: سبتمبر 2025)" class="w-full p-2 border rounded-lg" required>
           <input type="number" step="0.001" name="amount" placeholder="المبلغ (ر.ع)" class="w-full p-2 border rounded-lg" required>
-          <button type="submit" class="w-full bg-pink-400 text-white py-2 rounded-lg hover:bg-pink-500 transition">إضافة راتب</button>
+          <button type="submit" class="w-full bg-green-400 text-white py-2 rounded-lg hover:bg-green-500 transition">إضافة راتب</button>
       </form>
   </div>
 
