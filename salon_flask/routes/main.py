@@ -637,12 +637,8 @@ def employee_bookings():
         return "Access Denied", 403
 
     # جلب الموظف الحالي
-    employee = (
-        db.session.query(Employee)
-        .join(User, Employee.user_id == User.id)
-        .filter(User.username == session.get('username'))
-        .first()
-    )
+    current_user_id = session.get('user_id')
+    employee = Employee.query.filter_by(user_id=current_user_id).first()
     if not employee:
         return "Employee not found", 404
 
@@ -658,12 +654,8 @@ def employee_inventory():
     if session.get('role') != 'staff':
         return "Access Denied", 403
 
-    employee = (
-        db.session.query(Employee)
-        .join(User, Employee.user_id == User.id)
-        .filter(User.username == session.get('username'))
-        .first()
-    )
+    current_user_id = session.get('user_id')
+    employee = Employee.query.filter_by(user_id=current_user_id).first()
     if not employee:
         return "Employee not found", 404
 
@@ -684,12 +676,8 @@ def employee_consume_inventory():
     if session.get('role') != 'staff':
         return "Access Denied", 403
 
-    employee = (
-        db.session.query(Employee)
-        .join(User, Employee.user_id == User.id)
-        .filter(User.username == session.get('username'))
-        .first()
-    )
+    current_user_id = session.get('user_id')
+    employee = Employee.query.filter_by(user_id=current_user_id).first()
     if not employee:
         return "Employee not found", 404
 
