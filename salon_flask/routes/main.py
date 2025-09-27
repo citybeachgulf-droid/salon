@@ -684,8 +684,8 @@ def pos_bookings():
     GET: عرض قائمة الحجوزات ونماذج الإدخال.
     POST: تسجيل حجز جديد.
     """
-    # السماح فقط لمنفذ المبيعات أو المدير
-    if session.get('role') not in ['accountant', 'admin']:
+    # السماح لمنفذ المبيعات، المدير، والموظفين بالوصول للعرض
+    if session.get('role') not in ['accountant', 'admin', 'staff']:
         return "Access Denied", 403
 
     # جلب جميع الموظفين والخدمات والعملاء والحجوزات
@@ -695,6 +695,9 @@ def pos_bookings():
     bookings = Booking.query.order_by(Booking.date.desc(), Booking.time.desc()).all()
 
     if request.method == 'POST':
+        # تقييد إنشاء الحجوزات على المحاسب أو المدير فقط
+        if session.get('role') not in ['accountant', 'admin']:
+            return "Access Denied", 403
         # جمع بيانات الحجز من الفورم
         customer_name = request.form.get('customer_name')
         customer_phone = request.form.get('customer_phone')
