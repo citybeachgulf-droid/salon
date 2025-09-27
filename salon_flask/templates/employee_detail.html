@@ -10,8 +10,11 @@
 
 <header class="bg-pink-200 p-4 shadow-md flex justify-between items-center">
   <h1 class="text-2xl font-bold text-white">تفاصيل الموظف: {{ employee.name }}</h1>
-  <a href="{{ url_for('main.employees') }}" class="bg-white text-pink-600 px-4 py-2 rounded-lg font-semibold hover:bg-pink-100">رجوع إلى الموظفين</a>
-  <a href="{{ url_for('main.admin_dashboard') }}" class="bg-white text-pink-600 px-4 py-2 rounded-lg font-semibold hover:bg-pink-100">لوحة المدير</a>
+  <div class="flex items-center gap-2">
+    <a href="{{ url_for('main.pos_bookings') }}" class="bg-white text-pink-600 px-4 py-2 rounded-lg font-semibold hover:bg-pink-100">الحجوزات</a>
+    <a href="{{ url_for('main.employees') }}" class="bg-white text-pink-600 px-4 py-2 rounded-lg font-semibold hover:bg-pink-100">رجوع إلى الموظفين</a>
+    <a href="{{ url_for('main.admin_dashboard') }}" class="bg-white text-pink-600 px-4 py-2 rounded-lg font-semibold hover:bg-pink-100">لوحة المدير</a>
+  </div>
   
 </header>
 
