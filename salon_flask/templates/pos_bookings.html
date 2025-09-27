@@ -14,7 +14,8 @@
 
 <main class="p-6">
 
-  <!-- زر إضافة حجز -->
+  <!-- زر إضافة حجز: يظهر فقط للمحاسب والمدير -->
+  {% if session.get('role') in ['accountant', 'admin'] %}
   <div class="mb-4 text-right">
     <button 
       class="bg-pink-400 text-white py-2 px-4 rounded-lg hover:bg-pink-500 transition"
@@ -22,6 +23,7 @@
       إضافة حجز جديد
     </button>
   </div>
+  {% endif %}
 
   <!-- جدول الحجوزات -->
   <div class="overflow-x-auto bg-white rounded-lg shadow p-4">
