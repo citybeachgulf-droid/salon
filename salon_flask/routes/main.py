@@ -124,7 +124,7 @@ def add_employee():
     db.session.add(user)
 
     # إضافة الموظف
-    employee = Employee(name=name, specialty=request.form.get('specialty'))
+    employee = Employee(name=name, specialty=request.form.get('specialty'), user=user)
     db.session.add(employee)
 
     db.session.commit()
@@ -637,7 +637,12 @@ def employee_bookings():
         return "Access Denied", 403
 
     # جلب الموظف الحالي
-    employee = Employee.query.filter_by(name=session.get('username')).first()
+    employee = (
+        db.session.query(Employee)
+        .join(User, Employee.user_id == User.id)
+        .filter(User.username == session.get('username'))
+        .first()
+    )
     if not employee:
         return "Employee not found", 404
 
@@ -645,6 +650,71 @@ def employee_bookings():
     bookings = Booking.query.filter_by(employee_id=employee.id).all()
 
     return render_template('employee_bookings.html', bookings=bookings)
+
+
+# صفحة استهلاك المخزن للموظف
+@main_bp.route('/employee/inventory', methods=['GET'])
+def employee_inventory():
+    if session.get('role') != 'staff':
+        return "Access Denied", 403
+
+    employee = (
+        db.session.query(Employee)
+        .join(User, Employee.user_id == User.id)
+        .filter(User.username == session.get('username'))
+        .first()
+    )
+    if not employee:
+        return "Employee not found", 404
+
+    items = Inventory.query.all()
+    # آخر الحركات الخاصة بالموظف
+    recent_txns = (
+        db.session.query(InventoryTransaction)
+        .filter(InventoryTransaction.employee_id == employee.id)
+        .order_by(InventoryTransaction.date.desc())
+        .limit(20)
+        .all()
+    )
+    return render_template('employee_inventory.html', items=items, employee=employee, recent_txns=recent_txns)
+
+
+@main_bp.route('/employee/inventory/consume', methods=['POST'])
+def employee_consume_inventory():
+    if session.get('role') != 'staff':
+        return "Access Denied", 403
+
+    employee = (
+        db.session.query(Employee)
+        .join(User, Employee.user_id == User.id)
+        .filter(User.username == session.get('username'))
+        .first()
+    )
+    if not employee:
+        return "Employee not found", 404
+
+    inventory_id = request.form.get('inventory_id')
+    quantity_str = request.form.get('quantity', '1')
+    try:
+        quantity = int(quantity_str)
+    except Exception:
+        quantity = 1
+    if quantity <= 0:
+        quantity = 1
+
+    item = Inventory.query.get_or_404(inventory_id)
+    if quantity > item.quantity:
+        flash('الكمية المطلوبة أكبر من المخزون الحالي!', 'danger')
+        return redirect(url_for('main.employee_inventory'))
+
+    # تسجيل الحركة وتحديث المخزون
+    txn = InventoryTransaction(inventory_id=item.id, employee_id=employee.id, quantity=quantity)
+    db.session.add(txn)
+    item.quantity -= quantity
+    db.session.commit()
+
+    flash(f'تم تسجيل استهلاك {quantity} من {item.product}', 'success')
+    return redirect(url_for('main.employee_inventory'))
 
 
 
