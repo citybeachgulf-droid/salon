@@ -866,6 +866,55 @@ def available_times():
 
 
 # -----------------------------
+# Public Gallery Pages
+# -----------------------------
+@main_bp.route('/gallery')
+def gallery():
+    # Define gallery categories with icons (Bootstrap Icons classes)
+    categories = [
+        {"key": "hair", "title": "تساريح", "icon": "bi-scissors"},
+        {"key": "makeup", "title": "ميك أب", "icon": "bi-brush"},
+        {"key": "nails", "title": "أظافر", "icon": "bi-hand-index"}
+    ]
+
+    return render_template('gallery.html', categories=categories)
+
+
+@main_bp.route('/gallery/<string:category_key>')
+def gallery_category(category_key):
+    categories_map = {
+        'hair': 'تساريح',
+        'makeup': 'ميك أب',
+        'nails': 'أظافر'
+    }
+
+    if category_key not in categories_map:
+        return "Category not found", 404
+
+    # Build directory path under static/uploads/gallery/<category>
+    base_dir = os.path.join('static', 'uploads', 'gallery', category_key)
+    os.makedirs(base_dir, exist_ok=True)
+
+    allowed_ext = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
+    images = []
+    try:
+        for filename in sorted(os.listdir(base_dir)):
+            _, ext = os.path.splitext(filename.lower())
+            if ext in allowed_ext:
+                images.append(
+                    url_for('static', filename=f'uploads/gallery/{category_key}/{filename}')
+                )
+    except FileNotFoundError:
+        images = []
+
+    return render_template(
+        'gallery_category.html',
+        category_key=category_key,
+        category_title=categories_map[category_key],
+        images=images
+    )
+
+# -----------------------------
 # POS: Create Sale and Invoice
 # -----------------------------
 @main_bp.route('/pos/sales/create', methods=['POST'])
