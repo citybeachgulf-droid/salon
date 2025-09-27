@@ -1,0 +1,49 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="py-2">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="m-0">{{ category_title }}</h2>
+    <a class="btn btn-outline-secondary" href="{{ url_for('main.gallery') }}">عودة للمعرض</a>
+  </div>
+
+  {% if images %}
+  <div class="row g-3">
+    {% for img in images %}
+    <div class="col-6 col-md-4 col-lg-3">
+      <div class="card h-100">
+        <img src="{{ img }}" class="card-img-top" alt="{{ category_title }}" data-bs-toggle="modal" data-bs-target="#imgModal" data-img="{{ img }}">
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info">لا توجد صور بعد لهذه الفئة.</div>
+  {% endif %}
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="imgModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-body p-0">
+        <img id="modalImage" src="" class="img-fluid w-100" alt="preview">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var imgModal = document.getElementById('imgModal');
+  imgModal.addEventListener('show.bs.modal', function (event) {
+    var triggerImg = event.relatedTarget;
+    var src = triggerImg.getAttribute('data-img');
+    document.getElementById('modalImage').setAttribute('src', src);
+  });
+});
+</script>
+{% endblock %}
+
