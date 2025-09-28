@@ -18,11 +18,11 @@
 </header>
 
 <main class="p-6">
-  <h2 class="text-2xl font-semibold text-pink-600 mb-4">قائمة المنتجات</h2>
+  <h2 class="text-2xl font-semibold text-pink-600 mb-4">قسم الاستهلاك الداخلي</h2>
 
-  {% if items %}
-  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-    {% for item in items %}
+  {% if consumption_items %}
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    {% for item in consumption_items %}
     <div class="bg-white rounded-lg shadow p-4">
       {% if item.image_url %}
       <img src="{{ item.image_url }}" alt="{{ item.product }}" class="w-full h-40 object-cover rounded-md mb-3">
@@ -35,11 +35,55 @@
       {% if item.quantity <= item.reorder_level %}
       <div class="mt-2 text-xs text-red-600">تنبيه: المخزون منخفض</div>
       {% endif %}
+      {% if session.get('role') == 'admin' %}
+      <form action="{{ url_for('main.update_product_item') }}" method="post" class="mt-3 flex items-center gap-2">
+        <input type="hidden" name="item_id" value="{{ item.id }}">
+        <input type="hidden" name="for_sale" value="1">
+        <input type="number" step="0.01" min="0" name="sale_price" placeholder="سعر البيع" class="border rounded px-2 py-1 w-32">
+        <button class="bg-green-500 text-white px-3 py-1 rounded">تحويل للبيع</button>
+      </form>
+      {% endif %}
     </div>
     {% endfor %}
   </div>
   {% else %}
-  <div class="bg-white p-6 rounded-lg shadow text-center text-gray-600">لا توجد منتجات في المخزون حالياً.</div>
+  <div class="bg-white p-6 rounded-lg shadow text-center text-gray-600 mb-8">لا توجد منتجات للاستهلاك الداخلي.</div>
+  {% endif %}
+
+  <h2 class="text-2xl font-semibold text-pink-600 mb-4">قسم البيع</h2>
+  {% if sale_items %}
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for item in sale_items %}
+    <div class="bg-white rounded-lg shadow p-4">
+      {% if item.image_url %}
+      <img src="{{ item.image_url }}" alt="{{ item.product }}" class="w-full h-40 object-cover rounded-md mb-3">
+      {% endif %}
+      <h3 class="text-lg font-bold text-pink-700">{{ item.product }}</h3>
+      <div class="text-sm text-gray-700 mt-1">
+        <div>الكمية المتوفرة: <span class="font-semibold">{{ item.quantity }}</span></div>
+        <div>حد إعادة الطلب: <span class="font-semibold">{{ item.reorder_level }}</span></div>
+        <div class="mt-1">سعر البيع: <span class="font-semibold">{{ item.sale_price or 'غير محدد' }}</span></div>
+      </div>
+      {% if item.quantity <= item.reorder_level %}
+      <div class="mt-2 text-xs text-red-600">تنبيه: المخزون منخفض</div>
+      {% endif %}
+      {% if session.get('role') == 'admin' %}
+      <form action="{{ url_for('main.update_product_item') }}" method="post" class="mt-3 flex items-center gap-2">
+        <input type="hidden" name="item_id" value="{{ item.id }}">
+        <label class="flex items-center gap-2">
+          <span>للبيع</span>
+          <input type="hidden" name="for_sale" value="0">
+          <input type="checkbox" name="for_sale" value="1" {% if item.for_sale %}checked{% endif %} onchange="this.form.submit()">
+        </label>
+        <input type="number" step="0.01" min="0" name="sale_price" value="{{ item.sale_price or '' }}" placeholder="سعر البيع" class="border rounded px-2 py-1 w-32">
+        <button class="bg-blue-500 text-white px-3 py-1 rounded">تحديث</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="bg-white p-6 rounded-lg shadow text-center text-gray-600">لا توجد منتجات للبيع حالياً.</div>
   {% endif %}
 </main>
 

@@ -74,6 +74,10 @@ class Inventory(db.Model):
     reorder_level = db.Column(db.Integer, default=10)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     image_url = db.Column(db.String(200)) 
+    # تحديد إن كان المنتج مخصص للبيع أم للاستهلاك الداخلي
+    for_sale = db.Column(db.Boolean, default=False)
+    # سعر البيع الذي يحدده المدير فقط عند تفعيل البيع
+    sale_price = db.Column(db.Numeric(10,2), nullable=True)
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(200), nullable=False)
