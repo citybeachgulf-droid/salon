@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>المنتجات</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-pink-50 font-sans">
+
+<header class="bg-pink-200 p-4 shadow-md">
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold text-white">المنتجات</h1>
+        <nav class="flex items-center gap-2">
+            <a href="{{ url_for('main.pos_dashboard') }}" class="bg-blue-500 text-white py-2 px-4 rounded-lg shadow hover:bg-blue-600 transition">العودة لمنفذ البيع</a>
+        </nav>
+    </div>
+</header>
+
+<main class="p-6">
+  <h2 class="text-2xl font-semibold text-pink-600 mb-4">قائمة المنتجات</h2>
+
+  {% if items %}
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for item in items %}
+    <div class="bg-white rounded-lg shadow p-4">
+      {% if item.image_url %}
+      <img src="{{ item.image_url }}" alt="{{ item.product }}" class="w-full h-40 object-cover rounded-md mb-3">
+      {% endif %}
+      <h3 class="text-lg font-bold text-pink-700">{{ item.product }}</h3>
+      <div class="text-sm text-gray-700 mt-1">
+        <div>الكمية المتوفرة: <span class="font-semibold">{{ item.quantity }}</span></div>
+        <div>حد إعادة الطلب: <span class="font-semibold">{{ item.reorder_level }}</span></div>
+      </div>
+      {% if item.quantity <= item.reorder_level %}
+      <div class="mt-2 text-xs text-red-600">تنبيه: المخزون منخفض</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="bg-white p-6 rounded-lg shadow text-center text-gray-600">لا توجد منتجات في المخزون حالياً.</div>
+  {% endif %}
+</main>
+
+</body>
+</html>
+
