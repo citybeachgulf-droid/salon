@@ -201,8 +201,42 @@ def products_page():
     if session.get('role') not in ['admin', 'accountant']:
         return "Access Denied", 403
 
-    items = Inventory.query.all()
-    return render_template('products.html', items=items)
+    # تقسيم المنتجات إلى قسمين: استهلاك داخلي وبيع
+    consumption_items = Inventory.query.filter_by(for_sale=False).all()
+    sale_items = Inventory.query.filter_by(for_sale=True).all()
+    return render_template('products.html', consumption_items=consumption_items, sale_items=sale_items)
+
+
+@main_bp.route('/products/update_item', methods=['POST'])
+def update_product_item():
+    # مسموح للمدير فقط تعديل البيع والسعر
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    item_id = request.form.get('item_id')
+    for_sale_val = request.form.get('for_sale')
+    sale_price_val = request.form.get('sale_price')
+
+    item = Inventory.query.get_or_404(item_id)
+
+    # تحديث حالة البيع
+    if for_sale_val is not None:
+        item.for_sale = True if str(for_sale_val).lower() in ['1', 'true', 'yes', 'on'] else False
+
+    # تحديث سعر البيع عند تفعيله
+    if sale_price_val is not None and sale_price_val != '':
+        try:
+            item.sale_price = Decimal(str(sale_price_val))
+        except Exception:
+            flash('قيمة السعر غير صحيحة', 'danger')
+            return redirect(url_for('main.products_page'))
+    elif not item.for_sale:
+        # إذا ألغي البيع احذف السعر
+        item.sale_price = None
+
+    db.session.commit()
+    flash('تم تحديث المنتج بنجاح', 'success')
+    return redirect(url_for('main.products_page'))
 
 
 
