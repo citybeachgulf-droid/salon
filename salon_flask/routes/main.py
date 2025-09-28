@@ -9,6 +9,7 @@ from models import Service, Employee, Customer, Sale, SaleItem,Inventory
 from models import Expense, Salary
 from models import Revenue
 from models import Inventory, InventoryTransaction, Employee
+from models import Payment
 from decimal import Decimal
 from werkzeug.utils import secure_filename
 import os
@@ -1189,6 +1190,10 @@ def create_sale():
     customer_name = request.form.get('customer_name')
     customer_phone = request.form.get('customer_phone')
     quantity_str = request.form.get('quantity', '1')
+    payment_method = (request.form.get('payment_method') or 'cash').strip().lower()
+    paid_amount_str = (request.form.get('paid_amount') or '0').strip()
+    payment_reference = (request.form.get('payment_reference') or '').strip()
+    due_date_str = (request.form.get('due_date') or '').strip()
 
     try:
         quantity = int(quantity_str)
@@ -1237,13 +1242,58 @@ def create_sale():
         price=unit_price
     )
     db.session.add(sale_item)
-    # سجل الدخل مباشرة عند إنشاء عملية بيع
-    revenue = Revenue(
-        source=f"POS - {service.name}",
-        amount=total_amount,
-        date=datetime.utcnow().date()
-    )
-    db.session.add(revenue)
+
+    # معالجة الدفع
+    allowed_methods = {'cash', 'card', 'transfer', 'prepaid', 'deferred'}
+    if payment_method not in allowed_methods:
+        payment_method = 'cash'
+
+    # due_date للمدفوعات المؤجلة
+    due_date = None
+    if payment_method == 'deferred':
+        try:
+            if due_date_str:
+                due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+            else:
+                due_date = (datetime.utcnow() + timedelta(days=7)).date()
+        except Exception:
+            due_date = (datetime.utcnow() + timedelta(days=7)).date()
+        sale.due_date = due_date
+
+    # إنشاء سجل الدفع إن وجد مبلغ مدفوع
+    try:
+        paid_amount = Decimal(str(paid_amount_str))
+    except Exception:
+        paid_amount = Decimal('0')
+    if paid_amount < 0:
+        paid_amount = Decimal('0')
+
+    if paid_amount > 0:
+        payment = Payment(
+            sale_id=sale.id,
+            method=payment_method,
+            amount=min(paid_amount, total_amount),
+            reference=payment_reference or None
+        )
+        db.session.add(payment)
+
+    # تحديد حالة الفاتورة
+    if paid_amount <= 0:
+        sale.status = 'unpaid'
+    elif paid_amount >= total_amount:
+        sale.status = 'paid'
+    else:
+        sale.status = 'partial'
+
+    # تسجيل الإيراد على أساس المبلغ المستلم فقط
+    if paid_amount > 0:
+        revenue = Revenue(
+            source=f"POS - {service.name}",
+            amount=min(paid_amount, total_amount),
+            date=datetime.utcnow().date()
+        )
+        db.session.add(revenue)
+
     db.session.commit()
 
     # توجيه إلى صفحة الفاتورة
