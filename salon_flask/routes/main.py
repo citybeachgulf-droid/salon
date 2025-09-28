@@ -303,6 +303,8 @@ def inventory_dashboard():
         product = request.form['product']
         quantity = int(request.form['quantity'])
         reorder_level = int(request.form['reorder_level'])
+        for_sale_val = request.form.get('for_sale')
+        sale_price_val = (request.form.get('sale_price') or '').strip()
 
         image_url = None
         if 'image' in request.files:
@@ -312,7 +314,26 @@ def inventory_dashboard():
                 file.save(os.path.join('static/uploads/inventory', filename))
                 image_url = url_for('static', filename=f'uploads/inventory/{filename}')
 
-        new_item = Inventory(product=product, quantity=quantity, reorder_level=reorder_level, image_url=image_url)
+        # تحديد خصائص البيع
+        is_for_sale = True if (for_sale_val and str(for_sale_val).lower() in ['1','true','yes','on']) else False
+
+        sale_price = None
+        if is_for_sale and sale_price_val:
+            try:
+                sale_price = Decimal(str(sale_price_val))
+                if sale_price < 0:
+                    sale_price = None
+            except Exception:
+                sale_price = None
+
+        new_item = Inventory(
+            product=product,
+            quantity=quantity,
+            reorder_level=reorder_level,
+            image_url=image_url,
+            for_sale=is_for_sale,
+            sale_price=sale_price
+        )
         db.session.add(new_item)
         db.session.commit()
         flash('تم إضافة المنتج بنجاح!', 'success')
