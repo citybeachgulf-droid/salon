@@ -30,9 +30,27 @@
       border-color: #7fdc7f;
       color: #000000;
     }
+    /* Pink themed pages (body has class page-pink) */
+    .page-pink {
+      background-color: #ffe4ec; /* light pink background */
+      color: #000000; /* black text */
+    }
+    .page-pink a { color: #000000; }
+    .page-pink .navbar {
+      background-color: #f8a6c4; /* pink navbar */
+    }
+    .page-pink .navbar .navbar-brand,
+    .page-pink .navbar .nav-link,
+    .page-pink .navbar .navbar-text {
+      color: #000000 !important; /* ensure black text in navbar */
+    }
+    .page-pink .card {
+      background-color: #ffffff;
+      color: #000000;
+    }
   </style>
 </head>
-<body class="bg-light">
+<body class="{% block body_class %}{% endblock %} bg-light">
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
       <a class="navbar-brand" href="/">Salon</a>
