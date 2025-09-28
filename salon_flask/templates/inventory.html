@@ -51,6 +51,21 @@
         <input type="file" name="image" accept="image/*"
                class="w-full p-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400">
       </div>
+
+      <!-- إعدادات البيع -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" id="for_sale" name="for_sale" value="1" class="h-4 w-4">
+          <span class="font-semibold">منتج للبيع</span>
+        </label>
+        <div>
+          <label class="block mb-1 font-semibold">سعر البيع</label>
+          <input type="number" step="0.01" min="0" name="sale_price" id="sale_price"
+                 placeholder="0.00"
+                 class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400 disabled:bg-gray-100"
+                 disabled>
+        </div>
+      </div>
       
       <div class="flex justify-end mt-4">
         <button type="submit" class="bg-green-400 text-white px-6 py-3 rounded-xl hover:bg-green-500 transition w-full">
@@ -72,6 +87,12 @@
             <h2 class="font-bold text-pink-700 text-lg">{{ item.product }}</h2>
             <p>الكمية المتوفرة: {{ item.quantity }}</p>
             <p>حد إعادة الطلب: {{ item.reorder_level }}</p>
+            {% if item.for_sale %}
+            <div class="mt-1 text-sm">
+                <span class="inline-block bg-green-100 text-green-700 px-2 py-0.5 rounded">للبيع</span>
+                <span class="ml-2">سعر البيع: <span class="font-semibold">{{ item.sale_price or 'غير محدد' }}</span></span>
+            </div>
+            {% endif %}
             {% if item.quantity <= item.reorder_level %}
             <span class="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded">كمية منخفضة!</span>
             {% endif %}
@@ -133,6 +154,22 @@ function openTransactionModal(id, product, quantity) {
 function closeTransactionModal() {
     document.getElementById('transactionModal').classList.add('hidden');
 }
+
+// Toggle sale price input with checkbox
+document.addEventListener('DOMContentLoaded', function() {
+    const forSale = document.getElementById('for_sale');
+    const salePrice = document.getElementById('sale_price');
+    if (forSale && salePrice) {
+        const update = () => {
+            salePrice.disabled = !forSale.checked;
+            if (!forSale.checked) {
+                salePrice.value = '';
+            }
+        };
+        forSale.addEventListener('change', update);
+        update();
+    }
+});
 </script>
 
 </body>
