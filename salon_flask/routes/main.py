@@ -186,12 +186,14 @@ def pos_dashboard():
     employees = Employee.query.all()  # هنا بدل User.query
     customers = Customer.query.all()
     services = Service.query.all()
+    sale_items = Inventory.query.filter_by(for_sale=True).all()
     
     return render_template(
         'pos_dashboard.html',
         employees=employees,
         customers=customers,
-        services=services
+        services=services,
+        sale_items=sale_items
     )
 
 
@@ -1250,7 +1252,9 @@ def create_sale():
     if session.get('role') not in ['accountant', 'admin']:
         return "Access Denied", 403
 
+    item_type = (request.form.get('item_type') or 'service').strip()
     service_id = request.form.get('service_id')
+    inventory_id = request.form.get('inventory_id')
     employee_id = request.form.get('employee_id')
     customer_name = request.form.get('customer_name')
     customer_phone = request.form.get('customer_phone')
@@ -1267,11 +1271,22 @@ def create_sale():
     except Exception:
         quantity = 1
 
-    # التأكد من وجود الخدمة والموظف
-    service = Service.query.get(service_id)
-    if not service:
-        flash("الخدمة غير موجودة!", "danger")
-        return redirect(url_for('main.pos_dashboard'))
+    # التأكد من وجود العنصر والموظف
+    service = None
+    inventory_item = None
+    if item_type == 'product':
+        if not inventory_id:
+            flash("المنتج غير محدد!", "danger")
+            return redirect(url_for('main.pos_dashboard'))
+        inventory_item = Inventory.query.get(inventory_id)
+        if not inventory_item or not inventory_item.for_sale or not inventory_item.sale_price:
+            flash("المنتج غير صالح للبيع!", "danger")
+            return redirect(url_for('main.pos_dashboard'))
+    else:
+        service = Service.query.get(service_id)
+        if not service:
+            flash("الخدمة غير موجودة!", "danger")
+            return redirect(url_for('main.pos_dashboard'))
 
     employee = Employee.query.get(employee_id)
     if not employee:
@@ -1288,7 +1303,10 @@ def create_sale():
         db.session.commit()
 
     # حساب المجموع وإنشاء البيع
-    unit_price = Decimal(str(service.price))
+    if item_type == 'product':
+        unit_price = Decimal(str(inventory_item.sale_price))
+    else:
+        unit_price = Decimal(str(service.price))
     total_amount = unit_price * quantity
 
     sale = Sale(
@@ -1300,13 +1318,29 @@ def create_sale():
     db.session.add(sale)
     db.session.flush()  # للحصول على sale.id قبل الالتزام
 
-    sale_item = SaleItem(
-        sale_id=sale.id,
-        service_id=service.id,
-        quantity=quantity,
-        price=unit_price
-    )
+    if item_type == 'product':
+        sale_item = SaleItem(
+            sale_id=sale.id,
+            inventory_id=inventory_item.id,
+            quantity=quantity,
+            price=unit_price
+        )
+    else:
+        sale_item = SaleItem(
+            sale_id=sale.id,
+            service_id=service.id,
+            quantity=quantity,
+            price=unit_price
+        )
     db.session.add(sale_item)
+
+    # خصم المخزون للمنتج المباع
+    if item_type == 'product':
+        if quantity > inventory_item.quantity:
+            db.session.rollback()
+            flash('الكمية المطلوبة أكبر من المخزون الحالي!', 'danger')
+            return redirect(url_for('main.pos_dashboard'))
+        inventory_item.quantity -= quantity
 
     # معالجة الدفع
     allowed_methods = {'cash', 'card', 'transfer', 'prepaid', 'deferred'}
@@ -1352,8 +1386,9 @@ def create_sale():
 
     # تسجيل الإيراد على أساس المبلغ المستلم فقط
     if paid_amount > 0:
+        item_label = service.name if service else (inventory_item.product if inventory_item else 'Item')
         revenue = Revenue(
-            source=f"POS - {service.name}",
+            source=f"POS - {item_label}",
             amount=min(paid_amount, total_amount),
             date=datetime.utcnow().date()
         )

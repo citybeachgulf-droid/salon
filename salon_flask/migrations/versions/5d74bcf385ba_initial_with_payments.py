@@ -146,11 +146,13 @@ def upgrade():
     op.create_table('sale_item',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('sale_id', sa.Integer(), nullable=False),
-    sa.Column('service_id', sa.Integer(), nullable=False),
+        sa.Column('service_id', sa.Integer(), nullable=True),
+        sa.Column('inventory_id', sa.Integer(), nullable=True),
     sa.Column('quantity', sa.Integer(), nullable=True),
     sa.Column('price', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.ForeignKeyConstraint(['sale_id'], ['sale.id'], ),
     sa.ForeignKeyConstraint(['service_id'], ['service.id'], ),
+        sa.ForeignKeyConstraint(['inventory_id'], ['inventory.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###

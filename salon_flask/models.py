@@ -110,11 +110,14 @@ class Sale(db.Model):
 class SaleItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sale_id = db.Column(db.Integer, db.ForeignKey('sale.id'), nullable=False)
-    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    # يمكن أن يشير العنصر إما إلى خدمة أو منتج
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=True)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'), nullable=True)
     quantity = db.Column(db.Integer, default=1)
     price = db.Column(db.Numeric(10,2))
 
     service = db.relationship('Service')
+    inventory = db.relationship('Inventory')
 
 
 class Payment(db.Model):
