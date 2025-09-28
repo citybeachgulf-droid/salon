@@ -95,10 +95,13 @@ class Sale(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=True)
     total_amount = db.Column(db.Numeric(10,2), default=0.0)
     date = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='unpaid')  # unpaid, partial, paid
+    due_date = db.Column(db.Date, nullable=True)  # للمدفوعات المؤجلة
 
     employee = db.relationship('Employee', backref='sales')
     customer = db.relationship('Customer', backref='sales')
     items = db.relationship('SaleItem', backref='sale', cascade='all, delete-orphan')
+    payments = db.relationship('Payment', backref='sale', cascade='all, delete-orphan')
 
 class SaleItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -108,6 +111,15 @@ class SaleItem(db.Model):
     price = db.Column(db.Numeric(10,2))
 
     service = db.relationship('Service')
+
+
+class Payment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sale_id = db.Column(db.Integer, db.ForeignKey('sale.id'), nullable=False)
+    method = db.Column(db.String(20), nullable=False)  # cash, card, transfer, prepaid, deferred
+    amount = db.Column(db.Numeric(10,2), nullable=False)
+    reference = db.Column(db.String(120))  # رقم مرجعي للتحويل/البطاقة
+    paid_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 
