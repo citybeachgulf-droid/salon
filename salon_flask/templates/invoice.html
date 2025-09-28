@@ -62,7 +62,7 @@
       <tbody>
         {% for item in sale.items %}
         <tr class="border-b">
-          <td class="py-2 px-3">{{ item.service.name }}</td>
+          <td class="py-2 px-3">{{ item.service.name if item.service else item.inventory.product }}</td>
           <td class="py-2 px-3">{{ item.quantity }}</td>
           <td class="py-2 px-3">{{ '%.3f'|format(item.price) }} ر.ع</td>
           <td class="py-2 px-3">{{ '%.3f'|format(item.price * item.quantity) }} ر.ع</td>
