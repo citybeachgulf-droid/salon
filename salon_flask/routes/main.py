@@ -195,6 +195,16 @@ def pos_dashboard():
     )
 
 
+@main_bp.route('/products')
+def products_page():
+    # السماح فقط للمحاسب أو المدير
+    if session.get('role') not in ['admin', 'accountant']:
+        return "Access Denied", 403
+
+    items = Inventory.query.all()
+    return render_template('products.html', items=items)
+
+
 
 
 
