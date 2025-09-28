@@ -9,27 +9,88 @@
     </div>
   </div>
 
-  <form action="{{ url_for('main.admin_gallery') }}" method="post" enctype="multipart/form-data" class="card p-3 shadow-sm">
+  <div class="row g-3">
+    <div class="col-12 col-lg-6">
+      <div class="card p-3 shadow-sm h-100">
+        <h5 class="mb-3">إنشاء فئة جديدة</h5>
+        <form action="{{ url_for('main.admin_gallery') }}" method="post" enctype="multipart/form-data">
+          <input type="hidden" name="action" value="create_category">
+          <div class="mb-3">
+            <label class="form-label">المفتاح (بالإنجليزية)</label>
+            <input type="text" name="key" class="form-control" placeholder="مثال: bridal" required>
+            <div class="form-text">سيُستخدم كاسم المجلد: static/uploads/gallery/&lt;key&gt;</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">العنوان الظاهر</label>
+            <input type="text" name="title" class="form-control" placeholder="مثال: عرايس" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">صورة الغلاف</label>
+            <input type="file" name="cover" class="form-control" accept="image/*" required>
+          </div>
+          <div class="text-end">
+            <button type="submit" class="btn btn-success">إنشاء الفئة</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card p-3 shadow-sm h-100">
+        <h5 class="mb-3">رفع صور لفئة موجودة</h5>
+        <form action="{{ url_for('main.admin_gallery') }}" method="post" enctype="multipart/form-data">
+          <input type="hidden" name="action" value="upload_images">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">الفئة</label>
+              <select name="category" class="form-select" required>
+                <option value="" selected disabled>اختر الفئة</option>
+                {% for c in categories %}
+                <option value="{{ c.key }}">{{ c.title }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">اختر الصور</label>
+              <input type="file" name="images" class="form-control" accept="image/*" multiple required>
+              <div class="form-text">الامتدادات المسموحة: png, jpg, jpeg, gif, webp</div>
+            </div>
+          </div>
+          <div class="mt-3 d-flex justify-content-end">
+            <button type="submit" class="btn btn-success">رفع الصور</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <hr class="my-4">
+
+  <div>
+    <h5 class="mb-3">الفئات الحالية</h5>
+    {% if categories %}
     <div class="row g-3">
-      <div class="col-12 col-md-4">
-        <label class="form-label">الفئة</label>
-        <select name="category" class="form-select" required>
-          <option value="" selected disabled>اختر الفئة</option>
-          {% for c in categories %}
-          <option value="{{ c.key }}">{{ c.title }}</option>
-          {% endfor %}
-        </select>
+      {% for c in categories %}
+      <div class="col-6 col-md-4 col-lg-3">
+        <div class="card h-100 shadow-sm">
+          {% if c.cover_url %}
+          <img src="{{ c.cover_url }}" class="card-img-top" alt="{{ c.title }}">
+          {% else %}
+          <div class="ratio ratio-16x9 bg-light d-flex align-items-center justify-content-center text-muted">لا صورة</div>
+          {% endif %}
+          <div class="card-body text-center py-2">
+            <div class="fw-bold">{{ c.title }}</div>
+            <div class="text-muted small">{{ c.key }}</div>
+          </div>
+        </div>
       </div>
-      <div class="col-12 col-md-8">
-        <label class="form-label">اختر الصور</label>
-        <input type="file" name="images" class="form-control" accept="image/*" multiple required>
-        <div class="form-text">الامتدادات المسموحة: png, jpg, jpeg, gif, webp</div>
-      </div>
+      {% endfor %}
     </div>
-    <div class="mt-3 d-flex justify-content-end">
-      <button type="submit" class="btn btn-success">رفع الصور</button>
-    </div>
-  </form>
+    {% else %}
+    <div class="alert alert-info">لا توجد فئات بعد.</div>
+    {% endif %}
+  </div>
+  
 </div>
 {% endblock %}
 

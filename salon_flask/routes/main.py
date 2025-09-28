@@ -13,6 +13,7 @@ from decimal import Decimal
 from werkzeug.utils import secure_filename
 import os
 import uuid
+import json
 from sqlalchemy import and_
 
 
@@ -992,32 +993,82 @@ def available_times():
 # -----------------------------
 # Public Gallery Pages
 # -----------------------------
+def _load_gallery_categories():
+    """Scan static/uploads/gallery and build a list of categories with meta.
+
+    Returns list of dicts: {key, title, cover_url}
+    """
+    base_root = os.path.join('static', 'uploads', 'gallery')
+    os.makedirs(base_root, exist_ok=True)
+
+    categories = []
+    for name in sorted(os.listdir(base_root)):
+        dir_path = os.path.join(base_root, name)
+        if not os.path.isdir(dir_path):
+            continue
+
+        # Defaults
+        title = name
+        cover_rel = None
+
+        # Read meta.json if exists
+        meta_path = os.path.join(dir_path, 'meta.json')
+        if os.path.exists(meta_path):
+            try:
+                with open(meta_path, 'r', encoding='utf-8') as f:
+                    meta = json.load(f)
+                    title = meta.get('title') or title
+                    cover_rel = meta.get('cover') or None
+            except Exception:
+                pass
+
+        cover_url = None
+        if cover_rel:
+            cover_url = url_for('static', filename=f'uploads/gallery/{name}/{cover_rel}')
+        else:
+            # Fallback: first image in directory
+            allowed_ext = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
+            try:
+                for filename in sorted(os.listdir(dir_path)):
+                    _, ext = os.path.splitext(filename.lower())
+                    if ext in allowed_ext:
+                        cover_url = url_for('static', filename=f'uploads/gallery/{name}/{filename}')
+                        break
+            except FileNotFoundError:
+                pass
+
+        categories.append({
+            'key': name,
+            'title': title,
+            'cover_url': cover_url
+        })
+
+    return categories
+
+
 @main_bp.route('/gallery')
 def gallery():
-    # Define gallery categories with icons (Bootstrap Icons classes)
-    categories = [
-        {"key": "hair", "title": "تساريح", "icon": "bi-scissors"},
-        {"key": "makeup", "title": "ميك أب", "icon": "bi-brush"},
-        {"key": "nails", "title": "أظافر", "icon": "bi-hand-index"}
-    ]
-
+    categories = _load_gallery_categories()
     return render_template('gallery.html', categories=categories)
 
 
 @main_bp.route('/gallery/<string:category_key>')
 def gallery_category(category_key):
-    categories_map = {
-        'hair': 'تساريح',
-        'makeup': 'ميك أب',
-        'nails': 'أظافر'
-    }
-
-    if category_key not in categories_map:
+    # Directory path under static/uploads/gallery/<category>
+    base_dir = os.path.join('static', 'uploads', 'gallery', category_key)
+    if not os.path.isdir(base_dir):
         return "Category not found", 404
 
-    # Build directory path under static/uploads/gallery/<category>
-    base_dir = os.path.join('static', 'uploads', 'gallery', category_key)
-    os.makedirs(base_dir, exist_ok=True)
+    # Determine title from meta.json if present
+    category_title = category_key
+    meta_path = os.path.join(base_dir, 'meta.json')
+    if os.path.exists(meta_path):
+        try:
+            with open(meta_path, 'r', encoding='utf-8') as f:
+                meta = json.load(f)
+                category_title = meta.get('title') or category_title
+        except Exception:
+            pass
 
     allowed_ext = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
     images = []
@@ -1034,7 +1085,7 @@ def gallery_category(category_key):
     return render_template(
         'gallery_category.html',
         category_key=category_key,
-        category_title=categories_map[category_key],
+        category_title=category_title,
         images=images
     )
 
@@ -1047,17 +1098,53 @@ def admin_gallery():
     if session.get('role') != 'admin':
         return "Access Denied", 403
 
-    categories = [
-        {"key": "hair", "title": "تساريح"},
-        {"key": "makeup", "title": "ميك أب"},
-        {"key": "nails", "title": "أظافر"}
-    ]
-
+    # Handle POST actions: create_category or upload_images
     if request.method == 'POST':
+        action = request.form.get('action') or 'upload_images'
+        allowed_ext = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
+        base_root = os.path.join('static', 'uploads', 'gallery')
+        os.makedirs(base_root, exist_ok=True)
+
+        if action == 'create_category':
+            category_key = (request.form.get('key') or '').strip()
+            title = (request.form.get('title') or '').strip()
+            cover_file = request.files.get('cover')
+
+            if not category_key or not title or not cover_file or cover_file.filename == '':
+                flash('الرجاء إدخال المفتاح والعنوان واختيار صورة الغلاف.', 'danger')
+                return redirect(url_for('main.admin_gallery'))
+
+            # Sanitize directory name
+            category_key = secure_filename(category_key).lower()
+            dir_path = os.path.join(base_root, category_key)
+            if os.path.exists(dir_path):
+                flash('الفئة موجودة بالفعل.', 'warning')
+                return redirect(url_for('main.admin_gallery'))
+
+            os.makedirs(dir_path, exist_ok=True)
+
+            # Save cover image
+            name = secure_filename(cover_file.filename)
+            _, ext = os.path.splitext(name.lower())
+            if ext not in allowed_ext:
+                flash('امتداد صورة الغلاف غير مسموح.', 'danger')
+                return redirect(url_for('main.admin_gallery'))
+            cover_name = f"cover_{uuid.uuid4().hex}{ext}"
+            cover_file.save(os.path.join(dir_path, cover_name))
+
+            # Write meta.json
+            meta = {"title": title, "cover": cover_name}
+            with open(os.path.join(dir_path, 'meta.json'), 'w', encoding='utf-8') as f:
+                json.dump(meta, f, ensure_ascii=False, indent=2)
+
+            flash('تم إنشاء الفئة ورفع صورة الغلاف بنجاح.', 'success')
+            return redirect(url_for('main.admin_gallery'))
+
+        # Default: upload images to existing category
         category_key = request.form.get('category')
-        allowed_keys = {c["key"] for c in categories}
-        if category_key not in allowed_keys:
-            flash('فئة غير صحيحة.', 'danger')
+        base_dir = os.path.join(base_root, category_key)
+        if not os.path.isdir(base_dir):
+            flash('فئة غير موجودة.', 'danger')
             return redirect(url_for('main.admin_gallery'))
 
         files = request.files.getlist('images')
@@ -1065,10 +1152,6 @@ def admin_gallery():
             flash('يرجى اختيار صورة واحدة على الأقل.', 'warning')
             return redirect(url_for('main.admin_gallery'))
 
-        base_dir = os.path.join('static', 'uploads', 'gallery', category_key)
-        os.makedirs(base_dir, exist_ok=True)
-
-        allowed_ext = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
         saved_count = 0
         for f in files:
             if not f or f.filename == '':
@@ -1088,6 +1171,8 @@ def admin_gallery():
 
         return redirect(url_for('main.admin_gallery'))
 
+    # GET: load categories dynamically
+    categories = _load_gallery_categories()
     return render_template('admin_gallery.html', categories=categories)
 
 # -----------------------------
