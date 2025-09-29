@@ -99,7 +99,15 @@
       </div>
       <div>
         <label class="block mb-1 font-semibold">وقت الحجز</label>
-        <input type="time" name="booking_time" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400" required>
+        <input type="hidden" name="booking_time" id="customer_booking_time" required>
+        <div class="relative">
+          <button type="button" id="customer_time_toggle" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400 flex items-center justify-between">
+            <span id="customer_time_selected">اختر الوقت</span>
+            <span class="text-gray-500">▼</span>
+          </button>
+          <div id="customer_time_menu" class="absolute right-0 mt-1 w-full bg-white border rounded-xl shadow-lg max-h-64 overflow-y-auto hidden z-20"></div>
+        </div>
+        <p id="customer_time_hint" class="text-sm text-gray-500 mt-1">اختر التاريخ أولاً لتحميل الأوقات المتاحة</p>
       </div>
 
       <button type="submit" class="w-full bg-green-400 text-white py-3 rounded-xl hover:bg-green-500 transition">
@@ -115,11 +123,109 @@ function openBookingModal(serviceId, serviceName, servicePrice) {
     document.getElementById('modalServiceName').innerText = serviceName;
     document.getElementById('bookingModal').classList.remove('hidden');
     document.getElementById('bookingModal').classList.add('flex');
+    resetCustomerTimePicker();
 }
 
 function closeBookingModal() {
     document.getElementById('bookingModal').classList.add('hidden');
     document.getElementById('bookingModal').classList.remove('flex');
+}
+
+// --------- Time Dropdown (Customer Modal) ---------
+const customerTime = {
+    toggle: null,
+    menu: null,
+    selectedText: null,
+    hiddenInput: null,
+    dateInput: null,
+    serviceInput: null,
+    isOpen: false
+};
+
+function resetCustomerTimePicker() {
+    if (!customerTime.toggle) {
+        customerTime.toggle = document.getElementById('customer_time_toggle');
+        customerTime.menu = document.getElementById('customer_time_menu');
+        customerTime.selectedText = document.getElementById('customer_time_selected');
+        customerTime.hiddenInput = document.getElementById('customer_booking_time');
+        customerTime.dateInput = document.querySelector('input[name="booking_date"]');
+        customerTime.serviceInput = document.getElementById('modalServiceId');
+
+        customerTime.toggle.addEventListener('click', () => {
+            if (!customerTime.menu.dataset.ready) {
+                fetchCustomerAvailableTimes();
+            }
+            customerTime.isOpen = !customerTime.isOpen;
+            customerTime.menu.classList.toggle('hidden', !customerTime.isOpen);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!customerTime.isOpen) return;
+            const within = customerTime.toggle.contains(e.target) || customerTime.menu.contains(e.target);
+            if (!within) {
+                customerTime.isOpen = false;
+                customerTime.menu.classList.add('hidden');
+            }
+        });
+
+        if (customerTime.dateInput) {
+            customerTime.dateInput.addEventListener('change', () => {
+                customerTime.menu.dataset.ready = '';
+                customerTime.hiddenInput.value = '';
+                customerTime.selectedText.textContent = 'اختر الوقت';
+                fetchCustomerAvailableTimes();
+            });
+        }
+    }
+
+    // Clear selection and menu
+    customerTime.menu.innerHTML = '';
+    delete customerTime.menu.dataset.ready;
+    customerTime.hiddenInput.value = '';
+    customerTime.selectedText.textContent = 'اختر الوقت';
+    customerTime.isOpen = false;
+    customerTime.menu.classList.add('hidden');
+}
+
+function fetchCustomerAvailableTimes() {
+    const serviceId = customerTime.serviceInput && customerTime.serviceInput.value;
+    const dateStr = customerTime.dateInput && customerTime.dateInput.value;
+    const hint = document.getElementById('customer_time_hint');
+    if (!serviceId || !dateStr) {
+        if (hint) hint.textContent = 'اختر التاريخ أولاً لتحميل الأوقات المتاحة';
+        return;
+    }
+    if (hint) hint.textContent = 'جاري تحميل الأوقات المتاحة...';
+
+    fetch(`/api/available_times?service_id=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(dateStr)}`)
+        .then(r => r.json())
+        .then(data => {
+            customerTime.menu.innerHTML = '';
+            const times = Array.isArray(data.times) ? data.times : [];
+            if (!times.length) {
+                customerTime.menu.innerHTML = '<div class="p-3 text-gray-500 text-center">لا توجد أوقات متاحة</div>';
+            } else {
+                times.forEach(t => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'w-full text-right px-4 py-2 hover:bg-pink-50 focus:bg-pink-100';
+                    btn.textContent = t;
+                    btn.addEventListener('click', () => {
+                        customerTime.hiddenInput.value = t;
+                        customerTime.selectedText.textContent = t;
+                        customerTime.isOpen = false;
+                        customerTime.menu.classList.add('hidden');
+                    });
+                    customerTime.menu.appendChild(btn);
+                });
+            }
+            if (hint) hint.textContent = 'اختر الوقت';
+            customerTime.menu.dataset.ready = '1';
+        })
+        .catch(() => {
+            customerTime.menu.innerHTML = '<div class="p-3 text-red-500 text-center">تعذر جلب الأوقات</div>';
+            if (hint) hint.textContent = 'حاول مرة أخرى';
+        });
 }
 </script>
 

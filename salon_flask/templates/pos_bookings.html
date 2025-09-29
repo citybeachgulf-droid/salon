@@ -93,11 +93,19 @@
       </div>
       <div>
         <label class="block mb-1 font-semibold">تاريخ الحجز</label>
-        <input type="date" name="booking_date" class="w-full p-2 border rounded-lg" required>
+        <input type="date" name="booking_date" id="pos_booking_date" class="w-full p-2 border rounded-lg" required>
       </div>
       <div>
         <label class="block mb-1 font-semibold">وقت الحجز</label>
-        <input type="time" name="booking_time" class="w-full p-2 border rounded-lg" required>
+        <input type="hidden" name="booking_time" id="pos_booking_time" required>
+        <div class="relative">
+          <button type="button" id="pos_time_toggle" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 flex items-center justify-between">
+            <span id="pos_time_selected">اختر الوقت</span>
+            <span class="text-gray-500">▼</span>
+          </button>
+          <div id="pos_time_menu" class="absolute right-0 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto hidden z-20"></div>
+        </div>
+        <p id="pos_time_hint" class="text-sm text-gray-500 mt-1">اختر التاريخ أولاً لتحميل الأوقات المتاحة</p>
       </div>
       <button type="submit" class="w-full bg-green-400 text-white py-2 rounded-lg hover:bg-green-500 transition">تأكيد الحجز</button>
     </form>
@@ -108,11 +116,117 @@
 function openBookingModal() {
     document.getElementById('bookingModal').classList.remove('hidden');
     document.getElementById('bookingModal').classList.add('flex');
+    resetPosTimePicker();
 }
 
 function closeBookingModal() {
     document.getElementById('bookingModal').classList.add('hidden');
     document.getElementById('bookingModal').classList.remove('flex');
+}
+
+// --------- Time Dropdown (POS Modal) ---------
+const posTime = {
+  toggle: null,
+  menu: null,
+  selectedText: null,
+  hiddenInput: null,
+  dateInput: null,
+  serviceInput: null,
+  isOpen: false
+};
+
+function resetPosTimePicker() {
+  if (!posTime.toggle) {
+    posTime.toggle = document.getElementById('pos_time_toggle');
+    posTime.menu = document.getElementById('pos_time_menu');
+    posTime.selectedText = document.getElementById('pos_time_selected');
+    posTime.hiddenInput = document.getElementById('pos_booking_time');
+    posTime.dateInput = document.getElementById('pos_booking_date');
+    posTime.serviceInput = document.querySelector('select[name="service_id"]');
+
+    posTime.toggle.addEventListener('click', () => {
+      if (!posTime.menu.dataset.ready) {
+        fetchPosAvailableTimes();
+      }
+      posTime.isOpen = !posTime.isOpen;
+      posTime.menu.classList.toggle('hidden', !posTime.isOpen);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!posTime.isOpen) return;
+      const within = posTime.toggle.contains(e.target) || posTime.menu.contains(e.target);
+      if (!within) {
+        posTime.isOpen = false;
+        posTime.menu.classList.add('hidden');
+      }
+    });
+
+    if (posTime.dateInput) {
+      posTime.dateInput.addEventListener('change', () => {
+        posTime.menu.dataset.ready = '';
+        posTime.hiddenInput.value = '';
+        posTime.selectedText.textContent = 'اختر الوقت';
+        fetchPosAvailableTimes();
+      });
+    }
+
+    const serviceSelect = posTime.serviceInput;
+    if (serviceSelect) {
+      serviceSelect.addEventListener('change', () => {
+        posTime.menu.dataset.ready = '';
+        posTime.hiddenInput.value = '';
+        posTime.selectedText.textContent = 'اختر الوقت';
+      });
+    }
+  }
+
+  posTime.menu.innerHTML = '';
+  delete posTime.menu.dataset.ready;
+  posTime.hiddenInput.value = '';
+  posTime.selectedText.textContent = 'اختر الوقت';
+  posTime.isOpen = false;
+  posTime.menu.classList.add('hidden');
+}
+
+function fetchPosAvailableTimes() {
+  const serviceId = posTime.serviceInput && posTime.serviceInput.value;
+  const dateStr = posTime.dateInput && posTime.dateInput.value;
+  const hint = document.getElementById('pos_time_hint');
+  if (!serviceId || !dateStr) {
+    if (hint) hint.textContent = 'اختر التاريخ أولاً لتحميل الأوقات المتاحة';
+    return;
+  }
+  if (hint) hint.textContent = 'جاري تحميل الأوقات المتاحة...';
+
+  fetch(`/api/available_times?service_id=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(dateStr)}`)
+    .then(r => r.json())
+    .then(data => {
+      posTime.menu.innerHTML = '';
+      const times = Array.isArray(data.times) ? data.times : [];
+      if (!times.length) {
+        posTime.menu.innerHTML = '<div class="p-3 text-gray-500 text-center">لا توجد أوقات متاحة</div>';
+      } else {
+        times.forEach(t => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'w-full text-right px-4 py-2 hover:bg-pink-50 focus:bg-pink-100';
+          btn.textContent = t;
+          btn.addEventListener('click', () => {
+            posTime.hiddenInput.value = t;
+            posTime.selectedText.textContent = t;
+            posTime.isOpen = false;
+            posTime.menu.classList.add('hidden');
+          });
+          posTime.menu.appendChild(btn);
+        });
+      }
+      if (hint) hint.textContent = 'اختر الوقت';
+      posTime.menu.dataset.ready = '1';
+    })
+    .catch(() => {
+      posTime.menu.innerHTML = '<div class="p-3 text-red-500 text-center">تعذر جلب الأوقات</div>';
+      if (hint) hint.textContent = 'حاول مرة أخرى';
+    });
 }
 </script>
 
