@@ -107,7 +107,11 @@
           </button>
           <div id="customer_time_menu" class="absolute right-0 mt-1 w-full bg-white border rounded-xl shadow-lg max-h-64 overflow-y-auto hidden z-20"></div>
         </div>
-        <p id="customer_time_hint" class="text-sm text-gray-500 mt-1">اختر الموظف والتاريخ لتحميل الأوقات المتاحة</p>
+        <div class="mt-2 grid grid-cols-3 gap-2 items-center">
+          <input type="time" id="customer_time_manual" class="col-span-2 w-full p-3 border rounded-xl" inputmode="numeric" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM">
+          <button type="button" id="customer_time_set_btn" class="w-full bg-pink-500 text-white py-3 rounded-xl hover:bg-pink-600">تعيين</button>
+        </div>
+        <p id="customer_time_hint" class="text-sm text-gray-500 mt-1">اختر من القائمة أو أدخل الوقت يدوياً</p>
       </div>
 
       <button type="submit" class="w-full bg-green-400 text-white py-3 rounded-xl hover:bg-green-500 transition">
@@ -140,6 +144,8 @@ const customerTime = {
     dateInput: null,
     serviceInput: null,
     employeeInput: null,
+    manualInput: null,
+    setBtn: null,
     isOpen: false
 };
 
@@ -152,6 +158,8 @@ function resetCustomerTimePicker() {
         customerTime.dateInput = document.querySelector('input[name="booking_date"]');
         customerTime.serviceInput = document.getElementById('modalServiceId');
         customerTime.employeeInput = document.querySelector('select[name="employee_id"]');
+        customerTime.manualInput = document.getElementById('customer_time_manual');
+        customerTime.setBtn = document.getElementById('customer_time_set_btn');
 
         customerTime.toggle.addEventListener('click', () => {
             if (!customerTime.menu.dataset.ready) {
@@ -186,6 +194,32 @@ function resetCustomerTimePicker() {
                 fetchCustomerAvailableTimes();
             });
         }
+
+        if (customerTime.setBtn && customerTime.manualInput) {
+            const toTwo = (n) => (n.length === 1 ? '0' + n : n);
+            customerTime.setBtn.addEventListener('click', () => {
+                const raw = (customerTime.manualInput.value || '').trim();
+                let v = raw;
+                if (/^\d{1,4}$/.test(raw)) {
+                    if (raw.length <= 2) {
+                        v = toTwo(raw) + ':00';
+                    } else if (raw.length === 3) {
+                        v = toTwo(raw.slice(0,1)) + ':' + toTwo(raw.slice(1));
+                    } else if (raw.length === 4) {
+                        v = toTwo(raw.slice(0,2)) + ':' + toTwo(raw.slice(2));
+                    }
+                }
+                if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) {
+                    customerTime.manualInput.classList.add('ring-2','ring-red-400');
+                    setTimeout(() => customerTime.manualInput.classList.remove('ring-2','ring-red-400'), 1200);
+                    return;
+                }
+                customerTime.hiddenInput.value = v;
+                customerTime.selectedText.textContent = v;
+                customerTime.isOpen = false;
+                customerTime.menu.classList.add('hidden');
+            });
+        }
     }
 
     // Clear selection and menu
@@ -195,6 +229,7 @@ function resetCustomerTimePicker() {
     customerTime.selectedText.textContent = 'اختر الوقت';
     customerTime.isOpen = false;
     customerTime.menu.classList.add('hidden');
+    if (customerTime.manualInput) customerTime.manualInput.value = '';
 }
 
 function fetchCustomerAvailableTimes() {

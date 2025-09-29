@@ -105,7 +105,11 @@
           </button>
           <div id="pos_time_menu" class="absolute right-0 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto hidden z-20"></div>
         </div>
-        <p id="pos_time_hint" class="text-sm text-gray-500 mt-1">اختر الخدمة والموظف والتاريخ لتحميل الأوقات المتاحة</p>
+        <div class="mt-2 grid grid-cols-3 gap-2 items-center">
+          <input type="time" id="pos_time_manual" class="col-span-2 w-full p-2 border rounded-lg" inputmode="numeric" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM">
+          <button type="button" id="pos_time_set_btn" class="w-full bg-pink-500 text-white py-2 rounded-lg hover:bg-pink-600">تعيين</button>
+        </div>
+        <p id="pos_time_hint" class="text-sm text-gray-500 mt-1">اختر من القائمة أو أدخل الوقت يدوياً</p>
       </div>
       <button type="submit" class="w-full bg-green-400 text-white py-2 rounded-lg hover:bg-green-500 transition">تأكيد الحجز</button>
     </form>
@@ -145,6 +149,8 @@ function resetPosTimePicker() {
     posTime.dateInput = document.getElementById('pos_booking_date');
     posTime.serviceInput = document.querySelector('select[name="service_id"]');
     posTime.employeeInput = document.querySelector('select[name="employee_id"]');
+    posTime.manualInput = document.getElementById('pos_time_manual');
+    posTime.setBtn = document.getElementById('pos_time_set_btn');
 
     posTime.toggle.addEventListener('click', () => {
       if (!posTime.menu.dataset.ready) {
@@ -190,6 +196,34 @@ function resetPosTimePicker() {
         posTime.selectedText.textContent = 'اختر الوقت';
       });
     }
+
+    if (posTime.setBtn && posTime.manualInput) {
+      const toTwo = (n) => (n.length === 1 ? '0' + n : n);
+      posTime.setBtn.addEventListener('click', () => {
+        const raw = (posTime.manualInput.value || '').trim();
+        let v = raw;
+        // دعم إدخال أرقام فقط مثل 930 -> 09:30 ، 14 -> 14:00
+        if (/^\d{1,4}$/.test(raw)) {
+          if (raw.length <= 2) {
+            v = toTwo(raw) + ':00';
+          } else if (raw.length === 3) {
+            v = toTwo(raw.slice(0,1)) + ':' + toTwo(raw.slice(1));
+          } else if (raw.length === 4) {
+            v = toTwo(raw.slice(0,2)) + ':' + toTwo(raw.slice(2));
+          }
+        }
+        // تحقق الصيغة HH:MM
+        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) {
+          posTime.manualInput.classList.add('ring-2','ring-red-400');
+          setTimeout(() => posTime.manualInput.classList.remove('ring-2','ring-red-400'), 1200);
+          return;
+        }
+        posTime.hiddenInput.value = v;
+        posTime.selectedText.textContent = v;
+        posTime.isOpen = false;
+        posTime.menu.classList.add('hidden');
+      });
+    }
   }
 
   posTime.menu.innerHTML = '';
@@ -198,6 +232,7 @@ function resetPosTimePicker() {
   posTime.selectedText.textContent = 'اختر الوقت';
   posTime.isOpen = false;
   posTime.menu.classList.add('hidden');
+  if (posTime.manualInput) posTime.manualInput.value = '';
 }
 
 function fetchPosAvailableTimes() {
