@@ -107,7 +107,7 @@
           </button>
           <div id="customer_time_menu" class="absolute right-0 mt-1 w-full bg-white border rounded-xl shadow-lg max-h-64 overflow-y-auto hidden z-20"></div>
         </div>
-        <p id="customer_time_hint" class="text-sm text-gray-500 mt-1">اختر التاريخ أولاً لتحميل الأوقات المتاحة</p>
+        <p id="customer_time_hint" class="text-sm text-gray-500 mt-1">اختر الموظف والتاريخ لتحميل الأوقات المتاحة</p>
       </div>
 
       <button type="submit" class="w-full bg-green-400 text-white py-3 rounded-xl hover:bg-green-500 transition">
@@ -139,6 +139,7 @@ const customerTime = {
     hiddenInput: null,
     dateInput: null,
     serviceInput: null,
+    employeeInput: null,
     isOpen: false
 };
 
@@ -150,6 +151,7 @@ function resetCustomerTimePicker() {
         customerTime.hiddenInput = document.getElementById('customer_booking_time');
         customerTime.dateInput = document.querySelector('input[name="booking_date"]');
         customerTime.serviceInput = document.getElementById('modalServiceId');
+        customerTime.employeeInput = document.querySelector('select[name="employee_id"]');
 
         customerTime.toggle.addEventListener('click', () => {
             if (!customerTime.menu.dataset.ready) {
@@ -176,6 +178,14 @@ function resetCustomerTimePicker() {
                 fetchCustomerAvailableTimes();
             });
         }
+        if (customerTime.employeeInput) {
+            customerTime.employeeInput.addEventListener('change', () => {
+                customerTime.menu.dataset.ready = '';
+                customerTime.hiddenInput.value = '';
+                customerTime.selectedText.textContent = 'اختر الوقت';
+                fetchCustomerAvailableTimes();
+            });
+        }
     }
 
     // Clear selection and menu
@@ -189,15 +199,16 @@ function resetCustomerTimePicker() {
 
 function fetchCustomerAvailableTimes() {
     const serviceId = customerTime.serviceInput && customerTime.serviceInput.value;
+    const employeeId = customerTime.employeeInput && customerTime.employeeInput.value;
     const dateStr = customerTime.dateInput && customerTime.dateInput.value;
     const hint = document.getElementById('customer_time_hint');
-    if (!serviceId || !dateStr) {
-        if (hint) hint.textContent = 'اختر التاريخ أولاً لتحميل الأوقات المتاحة';
+    if (!serviceId || !employeeId || !dateStr) {
+        if (hint) hint.textContent = 'اختر الموظف والتاريخ لتحميل الأوقات المتاحة';
         return;
     }
     if (hint) hint.textContent = 'جاري تحميل الأوقات المتاحة...';
 
-    fetch(`/api/available_times?service_id=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(dateStr)}`)
+    fetch(`/api/available_times?service_id=${encodeURIComponent(serviceId)}&employee_id=${encodeURIComponent(employeeId)}&date=${encodeURIComponent(dateStr)}`)
         .then(r => r.json())
         .then(data => {
             customerTime.menu.innerHTML = '';
