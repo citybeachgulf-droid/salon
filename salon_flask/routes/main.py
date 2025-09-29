@@ -957,6 +957,11 @@ def pos_bookings():
         booking_date = request.form.get('booking_date')
         booking_time = request.form.get('booking_time')
 
+        # تحقق من وجود وقت محدد
+        if not booking_time:
+            flash("يرجى اختيار وقت الحجز من القائمة.", "danger")
+            return redirect(url_for('main.pos_bookings'))
+
         # تحقق إذا العميل موجود مسبقًا
         customer = Customer.query.filter_by(phone=customer_phone).first()
         if not customer:
@@ -970,13 +975,42 @@ def pos_bookings():
             flash("الموظف المحدد غير موجود!", "danger")
             return redirect(url_for('main.pos_bookings'))
 
+        # التحقق من التعارضات على جانب الخادم
+        try:
+            date_obj = datetime.strptime(booking_date, '%Y-%m-%d').date()
+            time_obj = datetime.strptime(booking_time, '%H:%M').time()
+        except Exception:
+            flash("صيغة التاريخ أو الوقت غير صحيحة.", "danger")
+            return redirect(url_for('main.pos_bookings'))
+
+        service = Service.query.get(service_id)
+        duration = (service.duration_minutes or 30) if service else 30
+        start_dt = datetime.combine(date_obj, time_obj)
+        end_dt = start_dt + timedelta(minutes=duration)
+
+        # احضر حجوزات الموظف لنفس اليوم وتحقق من التداخل
+        existing_bookings = Booking.query.filter_by(employee_id=employee.id, date=date_obj).all()
+        conflict_found = False
+        for b in existing_bookings:
+            b_service = Service.query.get(b.service_id)
+            b_dur = (b_service.duration_minutes or 30) if b_service else 30
+            b_start = datetime.combine(date_obj, b.time)
+            b_end = b_start + timedelta(minutes=b_dur)
+            if max(start_dt, b_start) < min(end_dt, b_end):
+                conflict_found = True
+                break
+
+        if conflict_found:
+            flash("الوقت المختار يتعارض مع حجز آخر لهذا الموظف.", "danger")
+            return redirect(url_for('main.pos_bookings'))
+
         # إنشاء الحجز
         booking = Booking(
             customer_id=customer.id,
             service_id=service_id,
             employee_id=employee.id,
-            date=datetime.strptime(booking_date, '%Y-%m-%d'),
-            time=datetime.strptime(booking_time, '%H:%M').time(),
+            date=date_obj,
+            time=time_obj,
             status='booked'
         )
         db.session.add(booking)
@@ -1043,17 +1077,74 @@ def customer_booking_page():
 
 @main_bp.route('/api/available_times')
 def available_times():
+    """إرجاع قائمة بالأوقات المتاحة لموظف معيّن بتاريخ وخدمة محددين.
+
+    المعايير:
+    - service_id: الخدمة المطلوبة (لاشتقاق مدة التنفيذ)
+    - employee_id: الموظف الذي سينفذ الخدمة (لتجنّب التعارضات)
+    - date: التاريخ بصيغة YYYY-MM-DD
+    """
     service_id = request.args.get('service_id')
+    employee_id = request.args.get('employee_id')
     date_str = request.args.get('date')
-    date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
 
-    # جميع الأوقات الممكنة (مثال: 9 ص - 5 م كل نصف ساعة)
-    all_times = [f"{h:02d}:{m:02d}" for h in range(9, 18) for m in (0,30)]
+    # تحقق من المعايير الأساسية
+    if not service_id or not employee_id or not date_str:
+        return {'times': []}
 
-    # حذف الأوقات المحجوزة مسبقًا
-    booked = Booking.query.filter_by(service_id=service_id, date=date_obj).all()
-    booked_times = [b.time.strftime("%H:%M") for b in booked]
-    available = [t for t in all_times if t not in booked_times]
+    try:
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except Exception:
+        return {'times': []}
+
+    # مدة الخدمة المطلوبة
+    service = Service.query.get(service_id)
+    service_duration = (service.duration_minutes or 30) if service else 30
+
+    # نافذة العمل العامة (9:00 إلى 18:00 بنصف ساعة)
+    working_start_hour = 9
+    working_end_hour = 18
+    step_minutes = 30
+
+    def to_dt(h, m):
+        return datetime.combine(date_obj, datetime.strptime(f"{h:02d}:{m:02d}", "%H:%M").time())
+
+    day_start = to_dt(working_start_hour, 0)
+    day_end = to_dt(working_end_hour, 0)
+
+    # احضر حجوزات الموظف في ذلك اليوم
+    employee_bookings = Booking.query.filter_by(employee_id=employee_id, date=date_obj).all()
+
+    # ابنِ فترات الانشغال بحسب مدة كل خدمة محجوزة
+    busy_intervals = []
+    for b in employee_bookings:
+        b_service = Service.query.get(b.service_id)
+        b_duration = (b_service.duration_minutes or 30) if b_service else 30
+        b_start = datetime.combine(date_obj, b.time)
+        b_end = b_start + timedelta(minutes=b_duration)
+        busy_intervals.append((b_start, b_end))
+
+    def overlaps(a_start, a_end, b_start, b_end):
+        return max(a_start, b_start) < min(a_end, b_end)
+
+    # لا نقترح أوقاتاً في الماضي لليوم الحالي
+    now = datetime.utcnow()
+    is_today = (date_obj == now.date())
+
+    # ولّد كل نقاط البداية المحتملة وفق خطوة 30 دقيقة بشرط أن تتسع المدة كاملة داخل يوم العمل
+    candidates = []
+    cursor = day_start
+    while cursor + timedelta(minutes=service_duration) <= day_end:
+        if not (is_today and cursor <= now):
+            candidates.append(cursor)
+        cursor += timedelta(minutes=step_minutes)
+
+    available = []
+    for start_dt in candidates:
+        end_dt = start_dt + timedelta(minutes=service_duration)
+        conflict = any(overlaps(start_dt, end_dt, bs, be) for (bs, be) in busy_intervals)
+        if not conflict:
+            available.append(start_dt.strftime('%H:%M'))
 
     return {'times': available}
 
