@@ -105,7 +105,7 @@
           </button>
           <div id="pos_time_menu" class="absolute right-0 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto hidden z-20"></div>
         </div>
-        <p id="pos_time_hint" class="text-sm text-gray-500 mt-1">اختر التاريخ أولاً لتحميل الأوقات المتاحة</p>
+        <p id="pos_time_hint" class="text-sm text-gray-500 mt-1">اختر الخدمة والموظف والتاريخ لتحميل الأوقات المتاحة</p>
       </div>
       <button type="submit" class="w-full bg-green-400 text-white py-2 rounded-lg hover:bg-green-500 transition">تأكيد الحجز</button>
     </form>
@@ -132,6 +132,7 @@ const posTime = {
   hiddenInput: null,
   dateInput: null,
   serviceInput: null,
+  employeeInput: null,
   isOpen: false
 };
 
@@ -143,6 +144,7 @@ function resetPosTimePicker() {
     posTime.hiddenInput = document.getElementById('pos_booking_time');
     posTime.dateInput = document.getElementById('pos_booking_date');
     posTime.serviceInput = document.querySelector('select[name="service_id"]');
+    posTime.employeeInput = document.querySelector('select[name="employee_id"]');
 
     posTime.toggle.addEventListener('click', () => {
       if (!posTime.menu.dataset.ready) {
@@ -176,6 +178,16 @@ function resetPosTimePicker() {
         posTime.menu.dataset.ready = '';
         posTime.hiddenInput.value = '';
         posTime.selectedText.textContent = 'اختر الوقت';
+        // لا نجلب الأوقات حتى يختار الموظف أيضاً
+      });
+    }
+
+    const employeeSelect = posTime.employeeInput;
+    if (employeeSelect) {
+      employeeSelect.addEventListener('change', () => {
+        posTime.menu.dataset.ready = '';
+        posTime.hiddenInput.value = '';
+        posTime.selectedText.textContent = 'اختر الوقت';
       });
     }
   }
@@ -190,15 +202,16 @@ function resetPosTimePicker() {
 
 function fetchPosAvailableTimes() {
   const serviceId = posTime.serviceInput && posTime.serviceInput.value;
+  const employeeId = posTime.employeeInput && posTime.employeeInput.value;
   const dateStr = posTime.dateInput && posTime.dateInput.value;
   const hint = document.getElementById('pos_time_hint');
-  if (!serviceId || !dateStr) {
-    if (hint) hint.textContent = 'اختر التاريخ أولاً لتحميل الأوقات المتاحة';
+  if (!serviceId || !employeeId || !dateStr) {
+    if (hint) hint.textContent = 'اختر الخدمة والموظف والتاريخ لتحميل الأوقات المتاحة';
     return;
   }
   if (hint) hint.textContent = 'جاري تحميل الأوقات المتاحة...';
 
-  fetch(`/api/available_times?service_id=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(dateStr)}`)
+  fetch(`/api/available_times?service_id=${encodeURIComponent(serviceId)}&employee_id=${encodeURIComponent(employeeId)}&date=${encodeURIComponent(dateStr)}`)
     .then(r => r.json())
     .then(data => {
       posTime.menu.innerHTML = '';
