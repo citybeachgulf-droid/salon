@@ -21,11 +21,12 @@
     <button id="menu-btn" class="md:hidden text-white text-3xl focus:outline-none">☰</button>
     <!-- روابط القائمة -->
     <nav class="hidden md:flex items-center gap-3">
-  <a href="#services" class="bg-white text-pink-600 hover:bg-pink-100 transition rounded-lg px-3 py-2">الخدمات</a>
-  <a href="#gallery" class="bg-white text-pink-600 hover:bg-pink-100 transition rounded-lg px-3 py-2">المعرض</a>
-  <a href="#offers" class="bg-white text-pink-600 hover:bg-pink-100 transition rounded-lg px-3 py-2">العروض</a>
-  <a href="#booking" class="bg-green-500 text-white hover:bg-green-600 transition rounded-lg px-3 py-2">احجزي الآن</a>
-</nav>
+      <a href="#services" class="bg-white text-pink-600 hover:bg-pink-100 transition rounded-lg px-3 py-2">الخدمات</a>
+      <a href="#gallery" class="bg-white text-pink-600 hover:bg-pink-100 transition rounded-lg px-3 py-2">المعرض</a>
+      <a href="#offers" class="bg-white text-pink-600 hover:bg-pink-100 transition rounded-lg px-3 py-2">العروض</a>
+      <a href="#booking" class="bg-green-500 text-white hover:bg-green-600 transition rounded-lg px-3 py-2">احجزي الآن</a>
+      <a href="{{ url_for('auth.login') }}" class="bg-white text-pink-700 hover:bg-pink-100 transition rounded-lg px-3 py-2">دخول الموظفين</a>
+    </nav>
 
   </div>
   <!-- القائمة الجانبية للجوال -->
@@ -34,6 +35,7 @@
     <a href="#gallery" class="block py-2 text-pink-700 hover:bg-pink-200">المعرض</a>
     <a href="#offers" class="block py-2 text-pink-700 hover:bg-pink-200">العروض</a>
     <a href="#booking" class="block py-2 text-green-600 font-bold hover:bg-green-200">احجزي الآن</a>
+    <a href="{{ url_for('auth.login') }}" class="block py-2 text-pink-700 hover:bg-pink-200">دخول الموظفين</a>
   </div>
 </header>
 <div class="h-20"></div>
@@ -45,23 +47,24 @@
   <a href="#booking" class="mt-6 inline-block bg-pink-500 text-white px-8 py-4 rounded-xl hover:bg-pink-600 transition">احجزي موعدك الآن</a>
 </section>
 
-<!-- 🔹 خدمات -->
+<!-- 🔹 خدمات (ديناميكية من قاعدة البيانات) -->
 <section id="services" class="py-16 bg-white">
   <h2 class="text-3xl font-bold text-center text-pink-600 mb-12" data-aos="fade-up">خدماتنا</h2>
   <div class="grid gap-8 px-6 max-w-6xl mx-auto md:grid-cols-3">
-    <div class="card p-6 bg-pink-50 rounded-xl text-center shadow-lg" data-aos="fade-up" data-aos-delay="100">
-      <h3 class="text-xl font-bold text-pink-700">قص وتصفيف الشعر</h3>
-      <p class="text-gray-600 mt-2">أحدث صيحات الموضة بلمسة عصرية.</p>
+    {% for service in services %}
+    <div class="card p-6 bg-pink-50 rounded-xl text-center shadow-lg" data-aos="fade-up" data-aos-delay="{{ loop.index0 * 100 }}">
+      {% if service.image_url %}
+      <img src="{{ url_for('static', filename=service.image_url) }}" alt="{{ service.name }}" class="rounded-xl w-full h-40 object-cover mb-3">
+      {% endif %}
+      <h3 class="text-xl font-bold text-pink-700">{{ service.name }}</h3>
+      <p class="text-gray-600 mt-2">السعر: {{ service.price }} ر.ع</p>
+      <a href="#booking" class="mt-3 inline-block bg-pink-500 text-white px-4 py-2 rounded-lg hover:bg-pink-600 transition book-now" data-service-id="{{ service.id }}">احجزي هذه الخدمة</a>
     </div>
-    <div class="card p-6 bg-pink-50 rounded-xl text-center shadow-lg" data-aos="fade-up" data-aos-delay="200">
-      <h3 class="text-xl font-bold text-pink-700">العناية بالبشرة</h3>
-      <p class="text-gray-600 mt-2">جلسات تنظيف وترطيب لإطلالة مشرقة.</p>
-    </div>
-    <div class="card p-6 bg-pink-50 rounded-xl text-center shadow-lg" data-aos="fade-up" data-aos-delay="300">
-      <h3 class="text-xl font-bold text-pink-700">تجميل الأظافر</h3>
-      <p class="text-gray-600 mt-2">مانيكير وباديكير فاخر بألوان مميزة.</p>
-    </div>
+    {% else %}
+    <div class="col-span-full text-center text-gray-500">لا توجد خدمات متاحة حالياً</div>
+    {% endfor %}
   </div>
+  
 </section>
 
 <!-- 🔹 معرض -->
@@ -96,23 +99,44 @@
   </div>
 </section>
 
-<!-- 🔹 الحجز -->
+<!-- 🔹 الحجز (مرتبط بالخادم) -->
 <section id="booking" class="py-16 bg-pink-50">
   <h2 class="text-3xl font-bold text-center text-pink-600 mb-12" data-aos="fade-up">📅 احجزي موعدك</h2>
   <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg" data-aos="zoom-in">
-    <form class="grid gap-4 md:grid-cols-2">
-      <input type="text" placeholder="اسمك" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-pink-400">
-      <input type="tel" placeholder="رقم الجوال" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-pink-400">
-      <input type="date" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-pink-400">
-      <select class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-pink-400">
-        <option>اختر الخدمة</option>
-        <option>قص شعر</option>
-        <option>مكياج</option>
-        <option>بشرة</option>
-        <option>أظافر</option>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="mb-4 space-y-2">
+          {% for cat, msg in messages %}
+            <div class="p-3 rounded-lg text-right {% if cat=='success' %}bg-green-100 text-green-700{% elif cat=='danger' %}bg-red-100 text-red-700{% else %}bg-pink-100 text-pink-700{% endif %}">{{ msg }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    <form action="{{ url_for('main.customer_booking_page') }}" method="POST" class="grid gap-4 md:grid-cols-2">
+      <input type="text" name="customer_name" placeholder="اسمك" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-pink-400" required>
+      <input type="tel" name="customer_phone" placeholder="رقم الجوال" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-pink-400" required>
+      <input type="date" name="booking_date" id="cust_booking_date" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-pink-400" required>
+      <select name="service_id" id="cust_service_id" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-pink-400" required>
+        <option value="">اختر الخدمة</option>
+        {% for service in services %}
+        <option value="{{ service.id }}">{{ service.name }} - {{ service.price }} ر.ع</option>
+        {% endfor %}
       </select>
-      <textarea placeholder="ملاحظات إضافية" rows="3" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-pink-400 md:col-span-2"></textarea>
-      <button class="bg-pink-500 text-white px-6 py-3 rounded-xl hover:bg-pink-600 transition md:col-span-2">تأكيد الحجز</button>
+      <select name="employee_id" id="cust_employee_id" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-pink-400" required>
+        <option value="">اختر الموظف</option>
+        {% for emp in employees %}
+        <option value="{{ emp.id }}">{{ emp.name }}</option>
+        {% endfor %}
+      </select>
+      <div class="md:col-span-2">
+        <label class="block mb-1 font-semibold">وقت الحجز</label>
+        <select name="booking_time" id="cust_booking_time" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-pink-400" required>
+          <option value="">اختر الوقت</option>
+        </select>
+        <p id="cust_time_hint" class="text-sm text-gray-500 mt-1">اختر الخدمة والموظف والتاريخ لتحميل الأوقات المتاحة</p>
+      </div>
+      <textarea name="notes" placeholder="ملاحظات إضافية" rows="3" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-pink-400 md:col-span-2"></textarea>
+      <button type="submit" class="bg-pink-500 text-white px-6 py-3 rounded-xl hover:bg-pink-600 transition md:col-span-2">تأكيد الحجز</button>
     </form>
   </div>
 </section>
@@ -144,6 +168,82 @@
   menuBtn.addEventListener("click", () => {
     mobileMenu.classList.toggle("hidden");
   });
+
+  // ربط زر "احجزي هذه الخدمة" باختيار الخدمة في نموذج الحجز
+  document.querySelectorAll('.book-now').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      const sid = e.currentTarget.getAttribute('data-service-id');
+      const svcSelect = document.getElementById('cust_service_id');
+      if (svcSelect && sid) {
+        svcSelect.value = sid;
+        // بعد اختيار الخدمة أعِد تحميل الأوقات المتاحة إن أمكن
+        fetchCustAvailableTimes();
+      }
+    });
+  });
+
+  // جلب الأوقات المتاحة حسب الخدمة والموظف والتاريخ
+  const custDate = document.getElementById('cust_booking_date');
+  const custService = document.getElementById('cust_service_id');
+  const custEmployee = document.getElementById('cust_employee_id');
+  const custTimeSelect = document.getElementById('cust_booking_time');
+  const custTimeHint = document.getElementById('cust_time_hint');
+
+  function resetCustTimes() {
+    if (custTimeSelect) {
+      custTimeSelect.innerHTML = '<option value="">اختر الوقت</option>';
+    }
+  }
+
+  function fetchCustAvailableTimes() {
+    if (!custDate || !custService || !custEmployee || !custTimeSelect) return;
+    const serviceId = custService.value;
+    const employeeId = custEmployee.value;
+    const dateStr = custDate.value;
+    if (!serviceId || !employeeId || !dateStr) {
+      if (custTimeHint) custTimeHint.textContent = 'اختر الخدمة والموظف والتاريخ لتحميل الأوقات المتاحة';
+      resetCustTimes();
+      return;
+    }
+    if (custTimeHint) custTimeHint.textContent = 'جاري تحميل الأوقات المتاحة...';
+    custTimeSelect.disabled = true;
+    fetch(`/api/available_times?service_id=${encodeURIComponent(serviceId)}&employee_id=${encodeURIComponent(employeeId)}&date=${encodeURIComponent(dateStr)}`)
+      .then(r => r.json())
+      .then(data => {
+        resetCustTimes();
+        const times = Array.isArray(data.times) ? data.times : [];
+        if (!times.length) {
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = 'لا توجد أوقات متاحة';
+          opt.disabled = true;
+          custTimeSelect.appendChild(opt);
+        } else {
+          times.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = t;
+            custTimeSelect.appendChild(opt);
+          });
+        }
+        custTimeSelect.disabled = false;
+        if (custTimeHint) custTimeHint.textContent = 'اختر الوقت';
+      })
+      .catch(() => {
+        resetCustTimes();
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'تعذر جلب الأوقات';
+        opt.disabled = true;
+        custTimeSelect.appendChild(opt);
+        custTimeSelect.disabled = false;
+        if (custTimeHint) custTimeHint.textContent = 'حاول مرة أخرى';
+      });
+  }
+
+  if (custDate) custDate.addEventListener('change', fetchCustAvailableTimes);
+  if (custService) custService.addEventListener('change', fetchCustAvailableTimes);
+  if (custEmployee) custEmployee.addEventListener('change', fetchCustAvailableTimes);
 </script>
 </body>
 </html>

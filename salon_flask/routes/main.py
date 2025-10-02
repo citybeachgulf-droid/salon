@@ -1033,45 +1033,49 @@ def pos_bookings():
 
 @main_bp.route('/customer/bookings', methods=['GET', 'POST'])
 def customer_booking_page():
-    services = Service.query.all()
-    employees = Employee.query.all()
+    # إعادة التوجيه إلى الواجهة العامة في الطلبات GET
+    if request.method == 'GET':
+        return redirect(url_for('main.home'))
 
-    if request.method == 'POST':
-        customer_name = request.form.get('customer_name')
-        customer_phone = request.form.get('customer_phone')
-        service_id = request.form.get('service_id')
-        employee_id = request.form.get('employee_id')
-        booking_date = request.form.get('booking_date')
-        booking_time = request.form.get('booking_time')
+    # POST: تسجيل حجز جديد من واجهة العملاء
+    customer_name = request.form.get('customer_name')
+    customer_phone = request.form.get('customer_phone')
+    service_id = request.form.get('service_id')
+    employee_id = request.form.get('employee_id')
+    booking_date = request.form.get('booking_date')
+    booking_time = request.form.get('booking_time')
 
-        # التأكد من وجود العميل
-        customer = Customer.query.filter_by(phone=customer_phone).first()
-        if not customer:
-            customer = Customer(name=customer_name, phone=customer_phone)
-            db.session.add(customer)
-            db.session.commit()
+    # تحقق من الوقت
+    if not booking_time:
+        flash("يرجى اختيار وقت الحجز من القائمة.", "danger")
+        return redirect(url_for('main.home'))
 
-        # التأكد من وجود الموظف
-        employee = Employee.query.get(employee_id)
-        if not employee:
-            flash("الموظف المختار غير موجود!", "danger")
-            return redirect(url_for('main.customer_booking_page'))
-
-        # إنشاء الحجز
-        booking = Booking(
-            customer_id=customer.id,
-            service_id=service_id,
-            employee_id=employee.id,
-            date=datetime.strptime(booking_date, '%Y-%m-%d'),
-            time=datetime.strptime(booking_time, '%H:%M').time(),
-            status='booked'
-        )
-        db.session.add(booking)
+    # التأكد من وجود العميل
+    customer = Customer.query.filter_by(phone=customer_phone).first()
+    if not customer:
+        customer = Customer(name=customer_name, phone=customer_phone)
+        db.session.add(customer)
         db.session.commit()
-        flash("تم تسجيل الحجز بنجاح!", "success")
-        return redirect(url_for('main.customer_booking_page'))
 
-    return render_template('customer_booking.html', services=services, employees=employees)
+    # التأكد من وجود الموظف
+    employee = Employee.query.get(employee_id)
+    if not employee:
+        flash("الموظف المختار غير موجود!", "danger")
+        return redirect(url_for('main.home'))
+
+    # إنشاء الحجز
+    booking = Booking(
+        customer_id=customer.id,
+        service_id=service_id,
+        employee_id=employee.id,
+        date=datetime.strptime(booking_date, '%Y-%m-%d').date(),
+        time=datetime.strptime(booking_time, '%H:%M').time(),
+        status='booked'
+    )
+    db.session.add(booking)
+    db.session.commit()
+    flash("تم تسجيل الحجز بنجاح!", "success")
+    return redirect(url_for('main.home'))
 
 
 
