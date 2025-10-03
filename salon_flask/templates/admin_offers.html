@@ -1,0 +1,142 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="py-2">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="m-0">إدارة العروض</h2>
+    <a class="btn btn-outline-secondary" href="{{ url_for('main.admin_dashboard') }}">العودة للوحة المدير</a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-5">
+      <div class="card p-3 shadow-sm h-100">
+        <h5 class="mb-3">إنشاء عرض جديد</h5>
+        <form action="{{ url_for('main.admin_offers') }}" method="post" enctype="multipart/form-data">
+          <input type="hidden" name="action" value="create">
+          <div class="mb-3">
+            <label class="form-label">العنوان</label>
+            <input type="text" name="title" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">الوصف</label>
+            <textarea name="description" class="form-control" rows="3" placeholder="وصف مختصر"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">السعر (اختياري)</label>
+            <input type="number" name="price" step="0.01" class="form-control" placeholder="مثال: 10.0">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">ترتيب العرض</label>
+            <input type="number" name="sort_order" class="form-control" value="0">
+          </div>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="create_active" name="active" checked>
+            <label class="form-check-label" for="create_active">مفعل</label>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">صورة العرض</label>
+            <input type="file" name="image" class="form-control" accept="image/*">
+          </div>
+          <div class="text-end">
+            <button type="submit" class="btn btn-success">حفظ العرض</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-7">
+      <div class="card p-3 shadow-sm h-100">
+        <h5 class="mb-3">العروض الحالية</h5>
+        {% if offers %}
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>العنوان</th>
+                <th>السعر</th>
+                <th>مفعل</th>
+                <th>ترتيب</th>
+                <th>صورة</th>
+                <th>تعديل</th>
+                <th>حذف</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for o in offers %}
+              <tr>
+                <td>{{ o.id }}</td>
+                <td>{{ o.title }}</td>
+                <td>{% if o.price is not none %}{{ o.price }} ر.ع{% else %}-{% endif %}</td>
+                <td>
+                  {% if o.active %}
+                  <span class="badge bg-success">نعم</span>
+                  {% else %}
+                  <span class="badge bg-secondary">لا</span>
+                  {% endif %}
+                </td>
+                <td>{{ o.sort_order }}</td>
+                <td>
+                  {% if o.image_url %}
+                  <img src="{{ url_for('static', filename=o.image_url) }}" alt="{{ o.title }}" style="width:64px;height:48px;object-fit:cover;"/>
+                  {% else %}-{% endif %}
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#edit{{o.id}}">تعديل</button>
+                </td>
+                <td>
+                  <form action="{{ url_for('main.delete_offer', offer_id=o.id) }}" method="post" onsubmit="return confirm('تأكيد حذف العرض؟');">
+                    <button class="btn btn-sm btn-outline-danger" type="submit">حذف</button>
+                  </form>
+                </td>
+              </tr>
+              <tr class="collapse" id="edit{{o.id}}">
+                <td colspan="8">
+                  <form action="{{ url_for('main.admin_offers') }}" method="post" enctype="multipart/form-data" class="border rounded p-3">
+                    <input type="hidden" name="action" value="update">
+                    <input type="hidden" name="id" value="{{ o.id }}">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">العنوان</label>
+                        <input type="text" class="form-control" name="title" value="{{ o.title }}">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">السعر (اختياري)</label>
+                        <input type="number" step="0.01" class="form-control" name="price" value="{{ o.price }}">
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label">الوصف</label>
+                        <textarea name="description" rows="2" class="form-control">{{ o.description }}</textarea>
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">ترتيب العرض</label>
+                        <input type="number" class="form-control" name="sort_order" value="{{ o.sort_order }}">
+                      </div>
+                      <div class="col-md-4 d-flex align-items-center">
+                        <div class="form-check form-switch mt-4">
+                          <input class="form-check-input" type="checkbox" id="active{{o.id}}" name="active" {% if o.active %}checked{% endif %}>
+                          <label class="form-check-label" for="active{{o.id}}">مفعل</label>
+                        </div>
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">صورة جديدة (اختياري)</label>
+                        <input type="file" name="image" class="form-control" accept="image/*">
+                      </div>
+                    </div>
+                    <div class="text-end mt-3">
+                      <button class="btn btn-primary" type="submit">حفظ التعديلات</button>
+                    </div>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">لا توجد عروض حالياً.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
