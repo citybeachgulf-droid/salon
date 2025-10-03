@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from extensions import db
 from models import Employee, User
 from flask import session, redirect, url_for, flash
-from models import Employee, User, Service, Booking, Supplier
+from models import Employee, User, Service, Booking, Supplier, Offer
 from sqlalchemy import func
 from datetime import datetime, date, timedelta
 from models import Service, Employee, Customer, Sale, SaleItem,Inventory  
@@ -22,6 +22,7 @@ pos_bp = Blueprint('pos', __name__, template_folder='../templates')
 
 main_bp = Blueprint('main', __name__, template_folder='../templates')
 UPLOAD_FOLDER = 'static/uploads/services'
+OFFERS_UPLOAD_FOLDER = 'static/uploads/offers'
 
 from sqlalchemy import func
 from models import Employee, Booking, Service
@@ -32,7 +33,8 @@ def home():
     services = Service.query.all()
     employees = Employee.query.all()
     categories = _load_gallery_categories()
-    return render_template('customer_home.html', services=services, employees=employees, categories=categories)
+    offers = Offer.query.filter_by(active=True).order_by(Offer.sort_order.asc(), Offer.created_at.desc()).all()
+    return render_template('customer_home.html', services=services, employees=employees, categories=categories, offers=offers)
 
 
 
@@ -174,6 +176,103 @@ def services_list():
     services = Service.query.all()
     employees = Employee.query.all()
     return render_template('admin_services.html', services=services, employees=employees)
+
+
+# -----------------------------
+# Admin: Offers CRUD
+# -----------------------------
+@main_bp.route('/admin/offers', methods=['GET', 'POST'])
+def admin_offers():
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    os.makedirs(OFFERS_UPLOAD_FOLDER, exist_ok=True)
+
+    if request.method == 'POST':
+        action = (request.form.get('action') or 'create').strip()
+
+        if action == 'create':
+            title = (request.form.get('title') or '').strip()
+            description = (request.form.get('description') or '').strip() or None
+            price_str = (request.form.get('price') or '').strip()
+            active_val = request.form.get('active')
+            sort_order_str = (request.form.get('sort_order') or '0').strip()
+            image_file = request.files.get('image')
+
+            if not title:
+                flash('العنوان مطلوب.', 'danger')
+                return redirect(url_for('main.admin_offers'))
+
+            image_url = None
+            if image_file and image_file.filename:
+                filename = secure_filename(image_file.filename)
+                unique_name = f"{uuid.uuid4().hex}_{filename}"
+                save_path = os.path.join(OFFERS_UPLOAD_FOLDER, unique_name)
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                image_file.save(save_path)
+                image_url = f"uploads/offers/{unique_name}"
+
+            try:
+                price = Decimal(str(price_str)) if price_str else None
+            except Exception:
+                price = None
+            try:
+                sort_order = int(sort_order_str)
+            except Exception:
+                sort_order = 0
+            is_active = True if (active_val and str(active_val).lower() in ['1','true','yes','on']) else False
+
+            offer = Offer(title=title, description=description, price=price, image_url=image_url, active=is_active, sort_order=sort_order)
+            db.session.add(offer)
+            db.session.commit()
+            flash('تم إنشاء العرض بنجاح.', 'success')
+            return redirect(url_for('main.admin_offers'))
+
+        if action == 'update':
+            offer_id = request.form.get('id')
+            offer = Offer.query.get_or_404(offer_id)
+            offer.title = (request.form.get('title') or offer.title).strip()
+            offer.description = (request.form.get('description') or '').strip() or None
+            price_str = (request.form.get('price') or '').strip()
+            try:
+                offer.price = Decimal(str(price_str)) if price_str else None
+            except Exception:
+                pass
+            sort_order_str = (request.form.get('sort_order') or '').strip()
+            try:
+                offer.sort_order = int(sort_order_str) if sort_order_str else offer.sort_order
+            except Exception:
+                pass
+            active_val = request.form.get('active')
+            if active_val is not None:
+                offer.active = True if str(active_val).lower() in ['1','true','yes','on'] else False
+
+            image_file = request.files.get('image')
+            if image_file and image_file.filename:
+                filename = secure_filename(image_file.filename)
+                unique_name = f"{uuid.uuid4().hex}_{filename}"
+                save_path = os.path.join(OFFERS_UPLOAD_FOLDER, unique_name)
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                image_file.save(save_path)
+                offer.image_url = f"uploads/offers/{unique_name}"
+
+            db.session.commit()
+            flash('تم تحديث العرض.', 'success')
+            return redirect(url_for('main.admin_offers'))
+
+    offers = Offer.query.order_by(Offer.sort_order.asc(), Offer.created_at.desc()).all()
+    return render_template('admin_offers.html', offers=offers)
+
+
+@main_bp.route('/admin/offers/<int:offer_id>/delete', methods=['POST'])
+def delete_offer(offer_id):
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+    offer = Offer.query.get_or_404(offer_id)
+    db.session.delete(offer)
+    db.session.commit()
+    flash('تم حذف العرض.', 'success')
+    return redirect(url_for('main.admin_offers'))
 
 
 
