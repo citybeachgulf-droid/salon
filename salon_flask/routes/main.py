@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from extensions import db
 from models import Employee, User
 from flask import session, redirect, url_for, flash
-from models import Employee, User, Service, Booking, Supplier
+from models import Employee, User, Service, Booking, Supplier, Offer
 from sqlalchemy import func
 from datetime import datetime, date, timedelta
 from models import Service, Employee, Customer, Sale, SaleItem,Inventory  
@@ -32,7 +32,8 @@ def home():
     services = Service.query.all()
     employees = Employee.query.all()
     categories = _load_gallery_categories()
-    return render_template('customer_home.html', services=services, employees=employees, categories=categories)
+    offers = Offer.query.filter_by(active=True).order_by(Offer.created_at.desc()).all()
+    return render_template('customer_home.html', services=services, employees=employees, categories=categories, offers=offers)
 
 
 
@@ -1511,3 +1512,72 @@ def view_invoice(sale_id):
 
     sale = Sale.query.get_or_404(sale_id)
     return render_template('invoice.html', sale=sale)
+
+
+# -----------------------------
+# Admin: Offers CRUD
+# -----------------------------
+@main_bp.route('/admin/offers', methods=['GET', 'POST'])
+def admin_offers():
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    if request.method == 'POST':
+        title = (request.form.get('title') or '').strip()
+        description = (request.form.get('description') or '').strip() or None
+        price_raw = (request.form.get('price') or '').strip()
+        active_flag = True if request.form.get('active') else False
+
+        if not title:
+            flash('يرجى إدخال عنوان العرض', 'danger')
+            return redirect(url_for('main.admin_offers'))
+
+        price_val = None
+        if price_raw:
+            try:
+                price_val = Decimal(str(price_raw))
+            except Exception:
+                flash('صيغة السعر غير صحيحة', 'danger')
+                return redirect(url_for('main.admin_offers'))
+
+        image_url = None
+        file = request.files.get('image')
+        if file and file.filename:
+            filename = secure_filename(file.filename)
+            _, ext = os.path.splitext(filename.lower())
+            os.makedirs(os.path.join('static', 'uploads', 'offers'), exist_ok=True)
+            unique_name = f"{uuid.uuid4().hex}{ext}"
+            save_path = os.path.join('static', 'uploads', 'offers', unique_name)
+            file.save(save_path)
+            image_url = f"uploads/offers/{unique_name}"
+
+        offer = Offer(title=title, description=description, price=price_val, image_url=image_url, active=active_flag)
+        db.session.add(offer)
+        db.session.commit()
+        flash('تمت إضافة العرض بنجاح', 'success')
+        return redirect(url_for('main.admin_offers'))
+
+    offers = Offer.query.order_by(Offer.created_at.desc()).all()
+    return render_template('admin_offers.html', offers=offers)
+
+
+@main_bp.route('/admin/offers/<int:offer_id>/toggle', methods=['POST'])
+def toggle_offer(offer_id):
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+    offer = Offer.query.get_or_404(offer_id)
+    offer.active = not bool(offer.active)
+    db.session.commit()
+    flash('تم تحديث حالة العرض', 'success')
+    return redirect(url_for('main.admin_offers'))
+
+
+@main_bp.route('/admin/offers/<int:offer_id>/delete', methods=['POST'])
+def delete_offer(offer_id):
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+    offer = Offer.query.get_or_404(offer_id)
+    db.session.delete(offer)
+    db.session.commit()
+    flash('تم حذف العرض', 'success')
+    return redirect(url_for('main.admin_offers'))

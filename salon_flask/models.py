@@ -45,6 +45,16 @@ class Service(db.Model):
     employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'))
 
 
+class Offer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.Text)
+    price = db.Column(db.Numeric(10, 2))
+    image_url = db.Column(db.String(200))
+    active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class Booking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
