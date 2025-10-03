@@ -5,25 +5,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>العملاء</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* تحسين الظل والحواف */
+  .card { border-radius: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .card-header { background-color: #ec4899; color: white; font-weight: 600; border-top-left-radius: 1rem; border-top-right-radius: 1rem; }
+  .btn-primary { background-color: #ec4899; color: white; font-weight: 600; padding: 0.5rem 1.5rem; border-radius: 0.75rem; transition: all 0.2s; }
+  .btn-primary:hover { background-color: #db2777; }
+  table th { background-color: #fce7f3; }
+  table tbody tr:hover { background-color: #fdf2f8; }
+</style>
 </head>
 <body class="bg-pink-50 font-sans">
 
 <header class="bg-pink-300 p-4 shadow-md">
-  <div class="flex items-center justify-between">
+  <div class="flex flex-col md:flex-row items-center justify-between gap-3">
     <h1 class="text-3xl font-bold text-white">العملاء</h1>
-    <nav class="flex items-center gap-2">
+    <nav class="flex flex-wrap items-center gap-2">
       <a href="{{ url_for('main.pos_bookings') }}" class="bg-white text-pink-600 py-2 px-4 rounded-lg shadow hover:bg-pink-100 transition">الحجوزات</a>
       <a href="{{ url_for('main.admin_dashboard') }}" class="bg-white text-pink-600 py-2 px-4 rounded-lg shadow hover:bg-pink-100 transition">لوحة المدير</a>
     </nav>
   </div>
 </header>
 
-<main class="p-6">
+<main class="p-6 space-y-6">
+
+  <!-- رسائل التنبيه -->
   {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-  <div class="mb-4 space-y-2">
+  <div class="space-y-2">
     {% for category, message in messages %}
-    <div class="p-3 rounded {{ 'bg-green-100 text-green-800' if category=='success' else ('bg-red-100 text-red-800' if category=='danger' else 'bg-yellow-100 text-yellow-800') }}">
+    <div class="p-3 rounded text-right {{ 'bg-green-100 text-green-800' if category=='success' else ('bg-red-100 text-red-800' if category=='danger' else 'bg-yellow-100 text-yellow-800') }}">
       {{ message }}
     </div>
     {% endfor %}
@@ -31,55 +42,57 @@
   {% endif %}
   {% endwith %}
 
-  <div class="bg-white rounded-xl shadow-md overflow-hidden mb-6">
-    <div class="p-4 border-b">
-      <h2 class="text-xl font-semibold text-pink-700">إضافة عميل جديد</h2>
+  <!-- إضافة عميل -->
+  <div class="card bg-white overflow-hidden">
+    <div class="card-header p-4">
+      <h2 class="text-xl">إضافة عميل جديد</h2>
     </div>
-    <form action="{{ url_for('main.add_customer') }}" method="POST" class="p-4 grid md:grid-cols-3 gap-4">
-      <input type="text" name="name" placeholder="الاسم" class="p-2 border rounded-lg" required>
-      <input type="text" name="phone" placeholder="الهاتف" class="p-2 border rounded-lg" required>
-      <input type="email" name="email" placeholder="البريد (اختياري)" class="p-2 border rounded-lg">
-      <div class="md:col-span-3">
-        <button type="submit" class="bg-pink-500 text-white py-2 px-4 rounded-lg hover:bg-pink-600">إضافة</button>
+    <form action="{{ url_for('main.add_customer') }}" method="POST" class="p-6 grid md:grid-cols-3 gap-4">
+      <input type="text" name="name" placeholder="الاسم" class="p-3 border rounded-lg focus:ring-2 focus:ring-pink-300" required>
+      <input type="text" name="phone" placeholder="الهاتف" class="p-3 border rounded-lg focus:ring-2 focus:ring-pink-300" required>
+      <input type="email" name="email" placeholder="البريد (اختياري)" class="p-3 border rounded-lg focus:ring-2 focus:ring-pink-300">
+      <div class="md:col-span-3 text-right">
+        <button type="submit" class="btn-primary">إضافة</button>
       </div>
     </form>
   </div>
-  <div class="bg-white rounded-xl shadow-md overflow-hidden">
-    <div class="p-4 border-b">
-      <h2 class="text-xl font-semibold text-pink-700">قائمة العملاء</h2>
-    </div>
 
-    <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-pink-100">
-        <thead class="bg-pink-100">
-          <tr>
-            <th class="px-4 py-3 text-right text-sm font-semibold text-pink-700">الاسم</th>
-            <th class="px-4 py-3 text-right text-sm font-semibold text-pink-700">الهاتف</th>
-            <th class="px-4 py-3 text-right text-sm font-semibold text-pink-700">البريد</th>
-            <th class="px-4 py-3 text-right text-sm font-semibold text-pink-700">الزيارات</th>
-            <th class="px-4 py-3 text-right text-sm font-semibold text-pink-700">نقاط الولاء</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-100">
-          {% for c in customers %}
-          <tr class="hover:bg-pink-50">
-            <td class="px-4 py-3 text-gray-800">{{ c.name }}</td>
-            <td class="px-4 py-3 text-gray-800">{{ c.phone }}</td>
-            <td class="px-4 py-3 text-gray-800">{{ c.email or '-' }}</td>
-            <td class="px-4 py-3 text-gray-800">{{ c.visits }}</td>
-            <td class="px-4 py-3 text-gray-800">{{ c.loyalty_points }}</td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="5" class="px-4 py-6 text-center text-gray-500">لا يوجد عملاء مسجلين</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <!-- قائمة العملاء -->
+  <div class="card bg-white overflow-hidden">
+    <div class="card-header p-4">
+      <h2 class="text-xl">قائمة العملاء</h2>
     </div>
-  </div>
+   <div class="overflow-x-auto">
+  <table class="min-w-full divide-y divide-pink-100">
+    <thead>
+      <tr>
+        <th class="px-4 py-3 text-right text-sm font-semibold text-pink-700">الاسم</th>
+        <th class="px-4 py-3 text-center text-sm font-semibold text-pink-700">الهاتف</th>
+        <th class="px-4 py-3 text-left text-sm font-semibold text-pink-700">البريد</th>
+        <th class="px-4 py-3 text-center text-sm font-semibold text-pink-700">الزيارات</th>
+        <th class="px-4 py-3 text-center text-sm font-semibold text-pink-700">نقاط الولاء</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-100">
+      {% for c in customers %}
+      <tr class="hover:bg-pink-50 transition">
+        <td class="px-4 py-3 text-right text-gray-800">{{ c.name }}</td>
+        <td class="px-4 py-3 text-center text-gray-800">{{ c.phone }}</td>
+        <td class="px-4 py-3 text-left text-gray-800">{{ c.email or '-' }}</td>
+        <td class="px-4 py-3 text-center text-gray-800">{{ c.visits }}</td>
+        <td class="px-4 py-3 text-center text-gray-800">{{ c.loyalty_points }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" class="px-4 py-6 text-center text-gray-500">لا يوجد عملاء مسجلين</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+
 </main>
 
 </body>
 </html>
-
