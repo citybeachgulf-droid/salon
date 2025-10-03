@@ -91,25 +91,28 @@
   </div>
 </section>
 
-<!-- 🔹 العروض -->
+<!-- 🔹 العروض (ديناميكية من قاعدة البيانات) -->
 <section id="offers" class="py-16 bg-white">
   <h2 class="text-3xl font-bold text-center text-pink-600 mb-12" data-aos="fade-up">💎 عروضنا الخاصة</h2>
   <div class="grid gap-8 px-6 max-w-6xl mx-auto md:grid-cols-3">
-    <div class="p-6 bg-pink-50 rounded-xl shadow-lg text-center" data-aos="flip-left">
-      <h3 class="text-xl font-bold text-pink-700 mb-2">باقة العروس</h3>
-      <p class="text-gray-600 mb-4">مكياج + شعر + أظافر + جلسة سبا</p>
-      <span class="block text-2xl font-bold text-pink-600">120 ريال</span>
-    </div>
-    <div class="p-6 bg-pink-50 rounded-xl shadow-lg text-center" data-aos="flip-left" data-aos-delay="200">
-      <h3 class="text-xl font-bold text-pink-700 mb-2">جلسة فاخرة</h3>
-      <p class="text-gray-600 mb-4">تنظيف بشرة + مساج استرخاء</p>
-      <span class="block text-2xl font-bold text-pink-600">60 ريال</span>
-    </div>
-    <div class="p-6 bg-pink-50 rounded-xl shadow-lg text-center" data-aos="flip-left" data-aos-delay="400">
-      <h3 class="text-xl font-bold text-pink-700 mb-2">باقة نهاية الأسبوع</h3>
-      <p class="text-gray-600 mb-4">شعر + أظافر + جلسة عناية</p>
-      <span class="block text-2xl font-bold text-pink-600">90 ريال</span>
-    </div>
+    {% if offers %}
+      {% for offer in offers[:6] %}
+      <div class="p-6 bg-pink-50 rounded-xl shadow-lg text-center card" data-aos="flip-left" data-aos-delay="{{ loop.index0 * 100 }}">
+        {% if offer.image_url %}
+        <img src="{{ url_for('static', filename=offer.image_url) }}" alt="{{ offer.title }}" class="rounded-xl w-full h-40 object-cover mb-3">
+        {% endif %}
+        <h3 class="text-xl font-bold text-pink-700 mb-2">{{ offer.title }}</h3>
+        {% if offer.description %}
+        <p class="text-gray-600 mb-4">{{ offer.description }}</p>
+        {% endif %}
+        {% if offer.price is not none %}
+        <span class="block text-2xl font-bold text-pink-600">{{ offer.price }} ر.ع</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="col-span-full text-center text-gray-500">لا توجد عروض متاحة حالياً</div>
+    {% endif %}
   </div>
 </section>
 
