@@ -1022,6 +1022,15 @@ def update_booking_status(booking_id):
             )
             db.session.add(revenue)
 
+        # زيادة عدد زيارات العميل عند اكتمال الحجز لأول مرة
+        if booking.customer_id:
+            try:
+                customer = Customer.query.get(booking.customer_id)
+            except Exception:
+                customer = None
+            if customer:
+                customer.visits = (customer.visits or 0) + 1
+
     db.session.commit()
     flash(f'تم تحديث حالة الحجز إلى {new_status}', 'success')
     return redirect(url_for('main.employee_bookings'))
@@ -1602,6 +1611,10 @@ def create_sale():
             date=datetime.utcnow().date()
         )
         db.session.add(revenue)
+
+    # زيادة عدد زيارات العميل عند إنشاء عملية بيع مرتبطة بعميل
+    if customer:
+        customer.visits = (customer.visits or 0) + 1
 
     db.session.commit()
 
