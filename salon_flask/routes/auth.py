@@ -24,7 +24,7 @@ def login():
             if role == 'admin':
                 return redirect(url_for('main.admin_dashboard'))
             elif role == 'account_manager':
-                return redirect(url_for('main.account_manager_dashboard'))
+                return redirect(url_for('main.accounting_dashboard'))
             elif role == 'accountant':
                 # فقط الوصول لمنفذ البيع
                 return redirect(url_for('main.pos_dashboard'))
