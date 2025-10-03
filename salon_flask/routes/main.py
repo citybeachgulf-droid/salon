@@ -1511,3 +1511,101 @@ def view_invoice(sale_id):
 
     sale = Sale.query.get_or_404(sale_id)
     return render_template('invoice.html', sale=sale)
+
+
+# -----------------------------
+# Admin: Unpaid/Partial Invoices Management
+# -----------------------------
+@main_bp.route('/admin/invoices')
+def unpaid_invoices():
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    unpaid_sales = Sale.query.filter(Sale.status == 'unpaid').order_by(Sale.date.desc()).all()
+    partial_sales = Sale.query.filter(Sale.status == 'partial').order_by(Sale.date.desc()).all()
+    return render_template('unpaid_invoices.html', unpaid_sales=unpaid_sales, partial_sales=partial_sales)
+
+
+@main_bp.route('/admin/invoices/<int:sale_id>/add_payment', methods=['POST'])
+def add_payment_to_invoice(sale_id):
+    if session.get('role') != 'admin':
+        return "Access Denied", 403
+
+    sale = Sale.query.get_or_404(sale_id)
+
+    action = (request.form.get('action') or 'add_payment').strip()
+    method = (request.form.get('method') or 'cash').strip().lower()
+    reference = (request.form.get('reference') or '').strip() or None
+
+    allowed_methods = {'cash', 'card', 'transfer', 'prepaid', 'deferred'}
+    if method not in allowed_methods:
+        method = 'cash'
+
+    # Compute remaining balance
+    try:
+        paid_sum = sum((p.amount for p in sale.payments), Decimal('0'))
+    except Exception:
+        paid_sum = Decimal('0')
+    try:
+        total_amount = Decimal(str(sale.total_amount))
+    except Exception:
+        total_amount = Decimal('0')
+    remaining = total_amount - paid_sum
+
+    if action == 'mark_paid':
+        pay_amount = remaining
+    else:
+        amount_str = (request.form.get('amount') or '0').strip()
+        try:
+            pay_amount = Decimal(amount_str)
+        except Exception:
+            pay_amount = Decimal('0')
+
+    if pay_amount <= 0:
+        flash('المبلغ غير صالح.', 'danger')
+        return redirect(url_for('main.unpaid_invoices'))
+
+    effective_amount = pay_amount if pay_amount <= remaining else remaining
+    if effective_amount <= 0:
+        flash('لا يوجد رصيد متبقٍ لهذه الفاتورة.', 'warning')
+        return redirect(url_for('main.unpaid_invoices'))
+
+    payment = Payment(
+        sale_id=sale.id,
+        method=method,
+        amount=effective_amount,
+        reference=reference
+    )
+    db.session.add(payment)
+
+    # Record revenue for received payment
+    try:
+        item_label = None
+        if sale.items and sale.items[0].service:
+            item_label = sale.items[0].service.name
+        elif sale.items and sale.items[0].inventory:
+            item_label = sale.items[0].inventory.product
+        else:
+            item_label = f"Sale #{sale.id}"
+        revenue = Revenue(
+            source=f"POS - Payment for {item_label}",
+            amount=effective_amount,
+            date=datetime.utcnow().date()
+        )
+        db.session.add(revenue)
+    except Exception:
+        # Fallback: do not block if label resolution fails
+        pass
+
+    # Update sale status based on new paid sum
+    new_paid_sum = paid_sum + effective_amount
+    if new_paid_sum <= Decimal('0'):
+        sale.status = 'unpaid'
+    elif new_paid_sum >= total_amount:
+        sale.status = 'paid'
+    else:
+        sale.status = 'partial'
+
+    db.session.commit()
+    flash('تم تسجيل الدفع وتحديث حالة الفاتورة.', 'success')
+    return redirect(url_for('main.unpaid_invoices'))
