@@ -26,6 +26,12 @@
         <p class="text-gray-500">العميل</p>
         <p class="font-semibold">{{ sale.customer.name if sale.customer else 'عميل نقدي' }}</p>
       </div>
+      {% if sale.customer %}
+      <div class="text-right">
+        <p class="text-gray-500">نقاط الولاء الحالية</p>
+        <p class="font-semibold">{{ sale.customer.loyalty_points or 0 }}</p>
+      </div>
+      {% endif %}
       <div class="text-right">
         <p class="text-gray-500">هاتف العميل</p>
         <p class="font-semibold">{{ sale.customer.phone if sale.customer else '-' }}</p>

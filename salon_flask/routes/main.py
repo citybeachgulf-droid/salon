@@ -1470,6 +1470,13 @@ def create_sale():
             reference=payment_reference or None
         )
         db.session.add(payment)
+        # Loyalty: award 1 point if a known customer pays more than 5
+        try:
+            effective_paid = min(paid_amount, total_amount)
+        except Exception:
+            effective_paid = paid_amount
+        if customer and effective_paid > Decimal('5'):
+            customer.loyalty_points = (customer.loyalty_points or 0) + 1
 
     # تحديد حالة الفاتورة
     if paid_amount <= 0:
