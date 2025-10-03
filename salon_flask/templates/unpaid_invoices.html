@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الفواتير الغير مدفوعة</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-pink-50 font-sans">
+  <header class="bg-pink-300 p-4 shadow-md">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <h1 class="text-2xl font-bold text-white">الفواتير الغير مدفوعة</h1>
+      <nav class="flex items-center gap-2">
+        <a href="{{ url_for('main.admin_dashboard') }}" class="bg-white text-pink-700 py-2 px-4 rounded-lg shadow hover:bg-gray-100 transition">لوحة المدير</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto p-6 space-y-10">
+    <section class="bg-white p-6 rounded-xl shadow">
+      <h2 class="text-xl font-semibold text-pink-700 mb-4">غير مدفوعة</h2>
+      {% if unpaid_sales %}
+      <div class="space-y-6">
+        {% for sale in unpaid_sales %}
+        <div class="border rounded-lg p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-sm text-gray-600">رقم الفاتورة: <span class="font-bold text-pink-700">#{{ sale.id }}</span></div>
+            <div class="text-sm text-gray-600">التاريخ: <span class="font-semibold">{{ sale.date.strftime('%Y-%m-%d %H:%M') }}</span></div>
+          </div>
+          <div class="grid md:grid-cols-3 gap-4 text-sm mb-3">
+            <div>الموظف: <span class="font-semibold">{{ sale.employee.name }}</span></div>
+            <div>العميل: <span class="font-semibold">{{ sale.customer.name if sale.customer else 'عميل نقدي' }}</span></div>
+            <div>الهاتف: <span class="font-semibold">{{ sale.customer.phone if sale.customer else '-' }}</span></div>
+          </div>
+
+          {% set paid_sum = 0 %}
+          <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs md:text-sm mb-2">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="py-2 px-3">التاريخ</th>
+                  <th class="py-2 px-3">الطريقة</th>
+                  <th class="py-2 px-3">المرجع</th>
+                  <th class="py-2 px-3">المبلغ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in sale.payments %}
+                {% set paid_sum = paid_sum + p.amount %}
+                <tr class="border-b">
+                  <td class="py-2 px-3">{{ p.paid_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                  <td class="py-2 px-3">{% if p.method == 'cash' %}نقدًا{% elif p.method == 'card' %}بطاقة{% elif p.method == 'transfer' %}تحويل{% elif p.method == 'prepaid' %}دفع مسبق{% elif p.method == 'deferred' %}مؤجل{% else %}—{% endif %}</td>
+                  <td class="py-2 px-3">{{ p.reference or '-' }}</td>
+                  <td class="py-2 px-3">{{ '%.3f'|format(p.amount) }} ر.ع</td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="4" class="py-3 text-gray-500">لا توجد مدفوعات مسجلة.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          {% set balance = sale.total_amount - paid_sum %}
+          <div class="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+            <div class="text-right">
+              <p class="text-gray-600">الإجمالي: <span class="font-bold text-pink-700">{{ '%.3f'|format(sale.total_amount) }} ر.ع</span></p>
+              <p class="text-gray-600">المدفوع: <span class="font-semibold">{{ '%.3f'|format(paid_sum) }} ر.ع</span></p>
+              <p class="text-gray-800">المتبقي: <span class="font-bold">{{ '%.3f'|format(balance) }} ر.ع</span></p>
+              {% if sale.due_date %}
+              <p class="text-gray-600">تاريخ الاستحقاق: <span class="font-semibold">{{ sale.due_date.strftime('%Y-%m-%d') }}</span></p>
+              {% endif %}
+            </div>
+            <div class="flex-1">
+              <form action="{{ url_for('main.add_payment_to_invoice', sale_id=sale.id) }}" method="POST" class="grid md:grid-cols-6 gap-2">
+                <select name="method" class="p-2 border rounded col-span-2" onchange="toggleRef(this)">
+                  <option value="cash">نقدًا</option>
+                  <option value="card">بطاقة</option>
+                  <option value="transfer">تحويل</option>
+                  <option value="prepaid">دفع مسبق</option>
+                </select>
+                <input type="number" step="0.001" min="0" max="{{ balance }}" name="amount" class="p-2 border rounded col-span-2" placeholder="المبلغ">
+                <input type="text" name="reference" class="p-2 border rounded col-span-2 ref-input hidden" placeholder="المرجع (اختياري)">
+                <div class="col-span-6 flex gap-2 mt-2">
+                  <button type="submit" name="action" value="add_payment" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">إضافة دفع</button>
+                  <button type="submit" name="action" value="mark_paid" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">تسديد كامل</button>
+                  <a href="{{ url_for('main.view_invoice', sale_id=sale.id) }}" class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">عرض الفاتورة</a>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-gray-500">لا توجد فواتير غير مدفوعة.</p>
+      {% endif %}
+    </section>
+
+    <section class="bg-white p-6 rounded-xl shadow">
+      <h2 class="text-xl font-semibold text-pink-700 mb-4">مدفوعة جزئيًا</h2>
+      {% if partial_sales %}
+      <div class="space-y-6">
+        {% for sale in partial_sales %}
+        <div class="border rounded-lg p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-sm text-gray-600">رقم الفاتورة: <span class="font-bold text-pink-700">#{{ sale.id }}</span></div>
+            <div class="text-sm text-gray-600">التاريخ: <span class="font-semibold">{{ sale.date.strftime('%Y-%m-%d %H:%M') }}</span></div>
+          </div>
+          <div class="grid md:grid-cols-3 gap-4 text-sm mb-3">
+            <div>الموظف: <span class="font-semibold">{{ sale.employee.name }}</span></div>
+            <div>العميل: <span class="font-semibold">{{ sale.customer.name if sale.customer else 'عميل نقدي' }}</span></div>
+            <div>الهاتف: <span class="font-semibold">{{ sale.customer.phone if sale.customer else '-' }}</span></div>
+          </div>
+
+          {% set paid_sum = 0 %}
+          <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs md:text-sm mb-2">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="py-2 px-3">التاريخ</th>
+                  <th class="py-2 px-3">الطريقة</th>
+                  <th class="py-2 px-3">المرجع</th>
+                  <th class="py-2 px-3">المبلغ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in sale.payments %}
+                {% set paid_sum = paid_sum + p.amount %}
+                <tr class="border-b">
+                  <td class="py-2 px-3">{{ p.paid_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                  <td class="py-2 px-3">{% if p.method == 'cash' %}نقدًا{% elif p.method == 'card' %}بطاقة{% elif p.method == 'transfer' %}تحويل{% elif p.method == 'prepaid' %}دفع مسبق{% elif p.method == 'deferred' %}مؤجل{% else %}—{% endif %}</td>
+                  <td class="py-2 px-3">{{ p.reference or '-' }}</td>
+                  <td class="py-2 px-3">{{ '%.3f'|format(p.amount) }} ر.ع</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          {% set balance = sale.total_amount - paid_sum %}
+          <div class="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+            <div class="text-right">
+              <p class="text-gray-600">الإجمالي: <span class="font-bold text-pink-700">{{ '%.3f'|format(sale.total_amount) }} ر.ع</span></p>
+              <p class="text-gray-600">المدفوع: <span class="font-semibold">{{ '%.3f'|format(paid_sum) }} ر.ع</span></p>
+              <p class="text-gray-800">المتبقي: <span class="font-bold">{{ '%.3f'|format(balance) }} ر.ع</span></p>
+              {% if sale.due_date %}
+              <p class="text-gray-600">تاريخ الاستحقاق: <span class="font-semibold">{{ sale.due_date.strftime('%Y-%m-%d') }}</span></p>
+              {% endif %}
+            </div>
+            <div class="flex-1">
+              <form action="{{ url_for('main.add_payment_to_invoice', sale_id=sale.id) }}" method="POST" class="grid md:grid-cols-6 gap-2">
+                <select name="method" class="p-2 border rounded col-span-2" onchange="toggleRef(this)">
+                  <option value="cash">نقدًا</option>
+                  <option value="card">بطاقة</option>
+                  <option value="transfer">تحويل</option>
+                  <option value="prepaid">دفع مسبق</option>
+                </select>
+                <input type="number" step="0.001" min="0" max="{{ balance }}" name="amount" class="p-2 border rounded col-span-2" placeholder="المبلغ">
+                <input type="text" name="reference" class="p-2 border rounded col-span-2 ref-input hidden" placeholder="المرجع (اختياري)">
+                <div class="col-span-6 flex gap-2 mt-2">
+                  <button type="submit" name="action" value="add_payment" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">إضافة دفع</button>
+                  <button type="submit" name="action" value="mark_paid" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">تسديد كامل</button>
+                  <a href="{{ url_for('main.view_invoice', sale_id=sale.id) }}" class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">عرض الفاتورة</a>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-gray-500">لا توجد فواتير مدفوعة جزئيًا.</p>
+      {% endif %}
+    </section>
+  </main>
+
+  <script>
+    function toggleRef(selectEl) {
+      const container = selectEl.closest('form');
+      const refInput = container.querySelector('.ref-input');
+      if (!refInput) return;
+      const val = selectEl.value;
+      if (val === 'card' || val === 'transfer') {
+        refInput.classList.remove('hidden');
+      } else {
+        refInput.classList.add('hidden');
+        refInput.value = '';
+      }
+    }
+  </script>
+</body>
+</html>
