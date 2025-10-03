@@ -1479,10 +1479,17 @@ def create_sale():
         if customer and effective_paid > Decimal('5'):
             customer.loyalty_points = (customer.loyalty_points or 0) + 1
 
-    # تحديد حالة الفاتورة
-    if paid_amount <= 0:
+    # تحديد حالة الفاتورة بناءً على إجمالي المدفوعات المسجلة
+    # نضمن إدراج الدفع الجديد في قاعدة البيانات قبل الحساب
+    db.session.flush()
+    total_paid = db.session.query(func.coalesce(func.sum(Payment.amount), 0)).filter(Payment.sale_id == sale.id).scalar()
+    try:
+        total_paid = total_paid if isinstance(total_paid, Decimal) else Decimal(str(total_paid or 0))
+    except Exception:
+        total_paid = Decimal('0')
+    if total_paid <= Decimal('0'):
         sale.status = 'unpaid'
-    elif paid_amount >= total_amount:
+    elif total_paid >= total_amount:
         sale.status = 'paid'
     else:
         sale.status = 'partial'
