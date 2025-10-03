@@ -31,7 +31,8 @@ def home():
     # واجهة العملاء هي الصفحة الرئيسية
     services = Service.query.all()
     employees = Employee.query.all()
-    return render_template('customer_home.html', services=services, employees=employees)
+    categories = _load_gallery_categories()
+    return render_template('customer_home.html', services=services, employees=employees, categories=categories)
 
 
 
