@@ -5,3 +5,4 @@ Flask-JWT-Extended
 Werkzeug
 qrcode
 Pillow
+python-barcode
