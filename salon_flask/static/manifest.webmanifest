@@ -1,0 +1,11 @@
+{
+  "name": "Salon Loyalty",
+  "short_name": "Loyalty",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffe4ec",
+  "theme_color": "#fd6f9e",
+  "description": "بطاقة ولاء رقمية للعملاء مع QR",
+  "icons": []
+}

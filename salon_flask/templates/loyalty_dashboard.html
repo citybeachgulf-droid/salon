@@ -1,0 +1,51 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h2 class="m-0">لوحة كروت الولاء</h2>
+  <form method="get" class="d-flex gap-2">
+    <input type="text" class="form-control" name="q" value="{{ query }}" placeholder="ابحث بالاسم أو الهاتف">
+    <button class="btn btn-success">بحث</button>
+  </form>
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.customers') }}">إدارة العملاء</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.pos_dashboard') }}">منفذ المبيعات</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.admin_dashboard') }}">لوحة المدير</a>
+  
+</div>
+
+<div class="table-responsive">
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>العميل</th>
+        <th>الهاتف</th>
+        <th>النقاط</th>
+        <th>العضوية</th>
+        <th class="text-end">الإجراءات</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in customers %}
+      <tr>
+        <td>{{ c.id }}</td>
+        <td>{{ c.name }}</td>
+        <td>{{ c.phone }}</td>
+        <td>{{ c.loyalty_points or 0 }}</td>
+        <td>{{ build_membership_code(c) }}</td>
+        <td class="text-end">
+          <a class="btn btn-sm btn-success" href="{{ url_for('loyalty.loyalty_card', customer_id=c.id) }}" target="_blank">
+            <i class="bi bi-card-text"></i> عرض البطاقة
+          </a>
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('loyalty.qr_png', customer_id=c.id) }}" target="_blank">
+            <i class="bi bi-qr-code"></i> QR
+          </a>
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('loyalty.scan', cid=c.id) }}" target="_blank">
+            <i class="bi bi-upc-scan"></i> افتح في POS
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -3,6 +3,7 @@ from config import Config
 from extensions import db, migrate, jwt
 from routes.auth import auth_bp
 from routes.main import main_bp
+from routes.loyalty import loyalty_bp
 
 def create_app():
     app = Flask(__name__)
@@ -16,6 +17,7 @@ def create_app():
     # Blueprints
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
+    app.register_blueprint(loyalty_bp)
 
     return app
 
