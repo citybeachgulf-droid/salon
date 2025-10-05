@@ -75,7 +75,7 @@
     </thead>
     <tbody class="bg-white divide-y divide-gray-100">
       {% for c in customers %}
-      <tr class="hover:bg-pink-50 transition">
+      <tr class="hover:bg-pink-50 transition" data-customer-id="{{ c.id }}" data-customer-name="{{ c.name }}" data-customer-phone="{{ c.phone }}">
         <td class="px-4 py-3 text-right text-gray-800">{{ c.name }}</td>
         <td class="px-4 py-3 text-center text-gray-800">{{ c.phone }}</td>
         <td class="px-4 py-3 text-left text-gray-800">{{ c.email or '-' }}</td>

@@ -287,13 +287,17 @@ def pos_dashboard():
     customers = Customer.query.all()
     services = Service.query.all()
     sale_items = Inventory.query.filter_by(for_sale=True).all()
+    # تعبئة تلقائية عند قدوم cid من مسح بطاقة الولاء
+    cid = request.args.get('cid', type=int)
+    prefill_customer = Customer.query.get(cid) if cid else None
     
     return render_template(
         'pos_dashboard.html',
         employees=employees,
         customers=customers,
         services=services,
-        sale_items=sale_items
+        sale_items=sale_items,
+        prefill_customer=prefill_customer
     )
 
 
