@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,32 +8,35 @@
 </head>
 <body class="bg-pink-50 font-sans">
 
-<header class="bg-pink-300 p-4 shadow-md">
-    <div class="flex items-center justify-between">
-        <h1 class="text-3xl font-bold text-white">لوحة المدير</h1>
-      <nav class="flex items-center gap-2">
-    <a href="{{ url_for('main.employees') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition">الموظفين</a>
-    <a href="{{ url_for('main.inventory_dashboard') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition">المخزن</a>
-    <a href="{{ url_for('main.suppliers_dashboard') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition">الموردين</a>
-    <a href="{{ url_for('main.admin_services') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition">الخدمات</a>
-    <a href="{{ url_for('main.customers') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition">العملاء</a>
-    <a href="{{ url_for('main.pos_bookings') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition">الحجوزات</a>
-    <a href="{{ url_for('main.pos_dashboard') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition">POS</a>
-    <a href="{{ url_for('main.admin_gallery') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition">إضافة صور المعرض</a>
-    <a href="{{ url_for('main.admin_offers') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition">العروض</a>
-    <a href="{{ url_for('main.unpaid_invoices') }}" class="bg-green-600 text-white py-2 px-4 rounded-lg shadow hover:bg-green-700 transition">الفواتير الغير مدفوعة</a>
-    <a href="{{ url_for('main.monthly_reports') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition">التقارير الشهرية</a>
-</nav>
-
-
+<header class="bg-pink-300 p-3 sm:p-4 shadow-md sticky top-0 z-40">
+  <div class="max-w-7xl mx-auto flex items-center justify-between">
+    <h1 class="text-2xl sm:text-3xl font-bold text-white">لوحة المدير</h1>
+    <button id="menu-toggle" class="md:hidden inline-flex items-center gap-2 bg-pink-400 hover:bg-pink-500 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/70" aria-controls="mobile-menu" aria-expanded="false">
+      <span class="text-base">القائمة</span>
+      <span class="text-2xl leading-none">☰</span>
+    </button>
+  </div>
+  <nav id="mobile-menu" class="hidden md:block mt-3 md:mt-2">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:flex-wrap items-stretch md:items-center gap-2">
+      <a href="{{ url_for('main.employees') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition text-sm md:text-base w-full md:w-auto text-center">الموظفين</a>
+      <a href="{{ url_for('main.inventory_dashboard') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition text-sm md:text-base w-full md:w-auto text-center">المخزن</a>
+      <a href="{{ url_for('main.suppliers_dashboard') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition text-sm md:text-base w-full md:w-auto text-center">الموردين</a>
+      <a href="{{ url_for('main.admin_services') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition text-sm md:text-base w-full md:w-auto text-center">الخدمات</a>
+      <a href="{{ url_for('main.customers') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition text-sm md:text-base w-full md:w-auto text-center">العملاء</a>
+      <a href="{{ url_for('main.pos_bookings') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition text-sm md:text-base w-full md:w-auto text-center">الحجوزات</a>
+      <a href="{{ url_for('main.pos_dashboard') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition text-sm md:text-base w-full md:w-auto text-center">POS</a>
+      <a href="{{ url_for('main.admin_gallery') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition text-sm md:text-base w-full md:w-auto text-center">إضافة صور المعرض</a>
+      <a href="{{ url_for('main.admin_offers') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition text-sm md:text-base w-full md:w-auto text-center">العروض</a>
+      <a href="{{ url_for('main.unpaid_invoices') }}" class="bg-green-600 text-white py-2 px-4 rounded-lg shadow hover:bg-green-700 transition text-sm md:text-base w-full md:w-auto text-center">الفواتير الغير مدفوعة</a>
+      <a href="{{ url_for('main.monthly_reports') }}" class="bg-green-400 text-black py-2 px-4 rounded-lg shadow hover:bg-green-500 transition text-sm md:text-base w-full md:w-auto text-center">التقارير الشهرية</a>
     </div>
-    
+  </nav>
 </header>
 
-<main class="p-6 space-y-8">
+<main class="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
 
   <!-- الملخص المالي -->
-  <div class="grid md:grid-cols-3 gap-6">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
     <div class="bg-white p-6 rounded-xl shadow-md text-center">
         <h2 class="text-lg font-semibold text-pink-600 mb-2">إجمالي الدخل</h2>
         <p class="text-2xl font-bold text-green-600">{{ total_income }} ر.ع</p>
@@ -67,6 +70,18 @@
   
 
 </main>
+
+<script>
+  const toggleButton = document.getElementById('menu-toggle');
+  const mobileMenu = document.getElementById('mobile-menu');
+  if (toggleButton && mobileMenu) {
+    toggleButton.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+      const expanded = toggleButton.getAttribute('aria-expanded') === 'true';
+      toggleButton.setAttribute('aria-expanded', String(!expanded));
+    });
+  }
+</script>
 
 </body>
 </html>
