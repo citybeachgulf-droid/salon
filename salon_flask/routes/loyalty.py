@@ -57,6 +57,26 @@ def qr_png(customer_id: int):
     return send_file(buf, mimetype='image/png', download_name=f"loyalty_{customer.id}.png")
 
 
+@loyalty_bp.route('/loyalty/barcode/<int:customer_id>.png')
+def barcode_png(customer_id: int):
+    customer = Customer.query.get_or_404(customer_id)
+    code_data = build_membership_code(customer)
+    try:
+        import barcode as _barcode
+        from barcode.writer import ImageWriter
+    except Exception:
+        abort(500, description='إنشاء الباركود غير متاح حالياً. الرجاء تثبيت python-barcode.')
+    code128 = _barcode.get('code128', code_data, writer=ImageWriter())
+    buf = BytesIO()
+    code128.write(buf, options={
+        'write_text': False,
+        'module_height': 18.0,
+        'module_width': 0.4,
+        'quiet_zone': 2.0
+    })
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png', download_name=f"loyalty_barcode_{customer.id}.png")
+
 @loyalty_bp.route('/loyalty/scan')
 def scan():
     cid = request.args.get('cid', type=int)

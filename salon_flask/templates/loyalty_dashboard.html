@@ -39,6 +39,9 @@
           <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('loyalty.qr_png', customer_id=c.id) }}" target="_blank">
             <i class="bi bi-qr-code"></i> QR
           </a>
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('loyalty.barcode_png', customer_id=c.id) }}" target="_blank">
+            <i class="bi bi-upc"></i> باركود
+          </a>
           <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('loyalty.scan', cid=c.id) }}" target="_blank">
             <i class="bi bi-upc-scan"></i> افتح في POS
           </a>
